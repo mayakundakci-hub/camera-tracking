@@ -1,0 +1,3 @@
+[submodule "external/mulib"]
+	path = external/mulib
+	url = git@code.siemens-energy.com:psc-development/p2d2/software/mulib.git
