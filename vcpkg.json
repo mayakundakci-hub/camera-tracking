@@ -1,0 +1,16 @@
+{
+  "name": "camera-tracking",
+  "version": "0.1.0",
+  "description": "OptiTrack vs FANUC hand position validation system",
+  "_comment": "mulib (external/mulib, see CMakeLists.txt) additionally requires opencascade, spdlog, and cli11, which aren't listed below yet — run `vcpkg add port opencascade spdlog cli11` from this directory once vcpkg is bootstrapped on the build machine to add them (this lets vcpkg validate the port names against the live registry instead of hand-typing them here). Also verify the qtbase 'opengl' feature/port name at that point — mulib requires Qt6::OpenGL and Qt6::OpenGLWidgets which the 'widgets' feature below may not cover.",
+  "dependencies": [
+    "nlohmann-json",
+    "protobuf",
+    "ecal",
+    {
+      "name": "qtbase",
+      "features": ["widgets"]
+    },
+    "gtest"
+  ]
+}

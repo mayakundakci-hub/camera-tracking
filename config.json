@@ -1,0 +1,44 @@
+{
+  "_comment": "Central config for the whole camera-tracking validation project. Every node loads this same file so there is one place to change IPs, IDs, rates, and paths.",
+
+  "ecal": {
+    "topic_pose_opti": "pose_opti",
+    "topic_pose_fanuc": "pose_fanuc",
+    "topic_validation": "hand/validation"
+  },
+
+  "optitrack": {
+    "motive_server_ip": "127.0.0.1",
+    "hand_rigid_body_id": 1,
+    "rotor_rigid_body_id": 2,
+    "required": false,
+    "_note": "rotor_rigid_body_id only used if you go the tracked-fixture route instead of a fixed CAD offset. required=false runs backend with no Motive/NatNet hardware at all (dev/demo mode) -- transform_sync will always report valid=false, since there's no camera data to match against. Set true once Motive is actually up."
+  },
+
+  "fanuc": {
+    "publish_rate_hz": 60,
+    "connection_mode": "stub",
+    "_note": "connection_mode: 'stub' = simulated poses, 'live' = real P2D2/FANUCLibrary link (not implemented yet)"
+  },
+
+  "transform_sync": {
+    "max_match_gap_sec": 0.020,
+    "stale_after_sec": 0.200,
+    "buffer_len": 256,
+    "calibration_file": "calibration/transform.json"
+  },
+
+  "frontend": {
+    "viewport_render_rate_hz": 60,
+    "panel_refresh_rate_hz": 10,
+    "stale_after_ms": 200,
+    "error_history_len": 600,
+    "rotor_model": "rotor_type_a",
+    "rotor_library_dir": "assets/rotors"
+  },
+
+  "logger": {
+    "output_dir": "logs",
+    "flush_every_n_rows": 50
+  }
+}

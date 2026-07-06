@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package camera_tracking;
+
+// Published by backend's optitrack part on topic "pose_opti"
+// Published by backend's fanuc part     on topic "pose_fanuc"
+message PosePacket {
+  double timestamp = 1;   // source-side capture time (Motive frame time / controller time), seconds
+  double pos_x     = 2;   // meters (convert mm -> m in the fanuc side so both topics share units)
+  double pos_y     = 3;
+  double pos_z     = 4;
+  double quat_w    = 5;
+  double quat_x    = 6;
+  double quat_y    = 7;
+  double quat_z    = 8;
+  bool   valid     = 9;   // false when tracking lost / comm dropped
+  string frame_id  = 10;  // "optitrack_world" or "fanuc_base"
+}
+
+// Published by backend's transform_sync part on topic "hand/validation"
+// Single message carrying everything the frontend + logger need
+// (avoids frontend stitching multiple topics together)
+message ValidationPacket {
+  double     timestamp    = 1;  // time of the matched sample pair
+  PosePacket pose_fanuc   = 2;  // as reported by controller (fanuc_base frame)
+  PosePacket pose_camera  = 3;  // OptiTrack pose ALREADY transformed into fanuc_base frame
+  double     error_mm     = 4;  // euclidean distance between the two, millimeters
+  double     error_x_mm   = 5;  // per-axis breakdown
+  double     error_y_mm   = 6;
+  double     error_z_mm   = 7;
+  bool       valid        = 8;  // false if either source was invalid/stale for this sample
+  bool       fanuc_is_stub = 9; // true when pose_fanuc came from backend's simulated stub,
+                                 // not a real controller link — frontend/logger must surface this
+}
