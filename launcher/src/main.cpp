@@ -68,7 +68,7 @@ int main()
     std::vector<Child> children;  // stopped in reverse order on shutdown
 
     PROCESS_INFORMATION backendPi{};
-    if (!spawn((exeDir / "backend.exe").string(), exeDir.string(), backendPi))
+    if (!spawn((exeDir / "backend.exe").string(), sourceDir.string(), backendPi))
     {
         std::fprintf(stderr, "[cameratracking] failed to start backend.exe\n");
         return 1;
