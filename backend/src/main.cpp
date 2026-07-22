@@ -1,5 +1,5 @@
 #include <ecal/ecal.h>
-#include <mu/middleware/EcalProtoTopic.hpp>
+#include <middleware/EcalProtoTopic.hpp>
 #include "camera_tracking.pb.h"
 #include "../../nodes/common/config.hpp"
 #include "../../nodes/common/transform_math.hpp"
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     // ---- optitrack ----
     const bool optitrackRequired = cfg["optitrack"].value("required", true);
     NatNetClient natnetClient;
-    mu::middleware::EcalProtoPublisher<PosePacket> optiPub("backend", topicOpti);
+    middleware::EcalProtoPublisher<PosePacket> optiPub("backend", topicOpti);
     bool optitrackConnected = false;
     if (optitrackRequired)
     {
@@ -77,18 +77,18 @@ int main(int argc, char** argv)
     }
 
     // ---- fanuc (stub) ----
-    mu::middleware::EcalProtoPublisher<PosePacket> fanucPub("backend", topicFanuc);
+    middleware::EcalProtoPublisher<PosePacket> fanucPub("backend", topicFanuc);
     const int fanucRateHz = cfg["fanuc"]["publish_rate_hz"];
     std::thread fanucThread(fanuc::runStubLoop, fanucRateHz, std::ref(fanucPub));
     std::printf("[backend/fanuc] mode='stub' — publishing simulated poses @ %d Hz\n", fanucRateHz);
 
     // ---- transform_sync ----
-    mu::middleware::EcalProtoSubscriber<PosePacket> subOpti("backend", topicOpti,
+    middleware::EcalProtoSubscriber<PosePacket> subOpti("backend", topicOpti,
         [&matcher](const PosePacket& msg) { matcher.onOptiPose(msg); });
 
-    mu::middleware::EcalProtoPublisher<ValidationPacket> validationPub("backend", topicOut);
+    middleware::EcalProtoPublisher<ValidationPacket> validationPub("backend", topicOut);
 
-    mu::middleware::EcalProtoSubscriber<PosePacket> subFanuc("backend", topicFanuc,
+    middleware::EcalProtoSubscriber<PosePacket> subFanuc("backend", topicFanuc,
         [&matcher, &validationPub, &calib, fanucIsStub](const PosePacket& fanucMsg)
         {
             validationPub.send(matcher.computeValidation(fanucMsg, fanucIsStub, calib));

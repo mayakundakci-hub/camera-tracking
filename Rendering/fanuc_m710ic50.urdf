@@ -1,0 +1,228 @@
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+<!-- note: we use almost all meshes from the M-710iC/50 as only links 2 and 4 are different. -->
+	<xacro:macro name="fanuc_m710ic50" params="prefix">
+		<link name="${prefix}_carriage_link">
+			<visual>
+				<geometry>
+					<mesh filename="Carriage\visual\${prefix}_Carriage.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.15 0.15 0.15 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<geometry>
+					<mesh filename="Carriage\collision\${prefix}_Carriage.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_base_link">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/base_link.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.15 0.15 0.15 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/base_link.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_1">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_1.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.96 0.76 0.13 1.0" />
+				</material>
+			</visual>
+				<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_1.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_2">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_2.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.96 0.76 0.13 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_2.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_3">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_3.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.96 0.76 0.13 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_3.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_4">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_4.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.96 0.76 0.13 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_4.stl" margin="10"/>
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_5">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_5.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.96 0.76 0.13 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_5.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_link_6">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/visual/link_6.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.15 0.15 0.15 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="m710ic50/collision/link_6.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_moat">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="MOAT/visual/MOAT_Final.stl" />
+				</geometry>
+				<material name="">
+					<color rgba="0.75 0.75 0.75 1.0" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="MOAT/collision/MOAT_Final.stl" margin="10" />
+				</geometry>
+			</collision>
+		</link>
+		<link name ="${prefix}_moat_tip" />
+		
+		<joint name="${prefix}_rail_to_carriage" type="prismatic">
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<parent link="rail_link" />
+			<child link="${prefix}_carriage_link" />
+			<axis xyz="0 1 0" />
+			<limit effort="0" lower="-5000" upper="5000" />
+		</joint>
+		<joint name="${prefix}_carriage_to_base_link" type="fixed">
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<parent link="${prefix}_carriage_link" />
+			<child link="${prefix}_base_link" />
+		</joint>
+		<joint name="${prefix}_joint_1" type="revolute">
+			<origin xyz="0 0 565" rpy="0 0 0" />
+			<parent link="${prefix}_base_link" />
+			<child link="${prefix}_link_1" />
+			<axis xyz="0 0 1" />
+			<limit effort="0" lower="-${pi}" upper="${pi}" />
+			<!--<limit effort="0" lower="${radians(-180)}" upper="${radians(180)}" />-->
+		</joint>
+		<joint name="${prefix}_joint_2" type="revolute">
+			<origin xyz="150 0 0" rpy="0 0 0" />
+			<parent link="${prefix}_link_1" />
+			<child link="${prefix}_link_2" />
+			<axis xyz="0 1 0" />
+			<limit effort="0" lower="${radians(-90)}" upper="${radians(135)}" />
+		</joint>
+		<joint name="${prefix}_joint_3" type="revolute">
+			<origin xyz="0 0 870" rpy="0 0 0" />
+			<parent link="${prefix}_link_2" />
+			<child link="${prefix}_link_3" />
+			<axis xyz="0 -1 0" />
+			<limit effort="0" lower="${radians(-160)}" upper="${radians(280)}" />
+		</joint>
+		<joint name="${prefix}_joint_4" type="revolute">
+			<origin xyz="0 0 170" rpy="0 0 0" />
+			<parent link="${prefix}_link_3" />
+			<child link="${prefix}_link_4" />
+			<axis xyz="-1 0 0" />
+			<limit effort="0" lower="-${2*pi}" upper="${2*pi}" />
+			<!--<limit effort="0" lower="${radians(-180)}" upper="${radians(180)}" />-->
+		</joint>
+		<joint name="${prefix}_joint_5" type="revolute">
+			<origin xyz="1016 0 0" rpy="0 0 0" />
+			<parent link="${prefix}_link_4" />
+			<child link="${prefix}_link_5" />
+			<axis xyz="0 -1 0" />
+			<limit effort="0" lower="${radians(-125)}" upper="${radians(125)}" />
+			<!--<limit effort="0" lower="${radians(0)}" upper="${radians(180)}" />-->
+		</joint>
+		<joint name="${prefix}_joint_6" type="revolute">
+			<origin xyz="175 0 0" rpy="0 0 0" />
+			<parent link="${prefix}_link_5" />
+			<child link="${prefix}_link_6" />
+			<axis xyz="-1 0 0" />
+			<limit effort="0" lower="-${2*pi}" upper="${2*pi}" />
+			<!--<limit effort="0" lower="${radians(-180)}" upper="${radians(180)}" />-->
+		</joint>
+		<joint name="${prefix}_joint_6_to_${prefix}_moat" type="fixed">
+            <origin xyz="0 0 0" rpy="0 0 ${-pi/2}" />
+			<parent link="${prefix}_link_6" />
+			<child link="${prefix}_moat" />
+		</joint>
+		<joint name="${prefix}_moat_to_${prefix}_moat_tip" type="fixed">
+			<origin xyz="0 909.523 0" rpy="0 0 0" />
+			<parent link="${prefix}_moat" />
+			<child link="${prefix}_moat_tip" />
+		</joint>
+	
+	</xacro:macro>
+</robot>
+

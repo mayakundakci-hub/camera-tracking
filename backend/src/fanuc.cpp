@@ -1,5 +1,7 @@
 #include "fanuc.hpp"
 
+#include "../../nodes/common/time_utils.hpp"
+
 #include <ecal/ecal.h>
 
 #include <chrono>
@@ -11,11 +13,8 @@ using camera_tracking::PosePacket;
 namespace fanuc {
 namespace {
 
-double nowSeconds()
-{
-    using namespace std::chrono;
-    return duration<double>(steady_clock::now().time_since_epoch()).count();
-}
+// nowSeconds() comes from nodes/common/time_utils.hpp -- the same clock the
+// optitrack node stamps with, which transform_sync's match gate depends on.
 
 // Simulated circular motion in the fanuc_base frame (meters)
 void generateStubPose(double t, PosePacket& msg)
@@ -34,7 +33,7 @@ void generateStubPose(double t, PosePacket& msg)
 
 } // namespace
 
-void runStubLoop(int publishRateHz, mu::middleware::EcalProtoPublisher<PosePacket>& pub)
+void runStubLoop(int publishRateHz, middleware::EcalProtoPublisher<PosePacket>& pub)
 {
     PosePacket msg;
     while (eCAL::Ok())

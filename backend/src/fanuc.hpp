@@ -3,7 +3,7 @@
 // =============================================================
 #pragma once
 
-#include <mu/middleware/EcalProtoTopic.hpp>
+#include <middleware/EcalProtoTopic.hpp>
 #include "camera_tracking.pb.h"
 
 namespace fanuc {
@@ -12,6 +12,6 @@ namespace fanuc {
 // synthetic generator, not something driven by an external callback.
 // Loops until eCAL::Ok() returns false, so the caller should join() it
 // after the shutdown signal, not stop it directly.
-void runStubLoop(int publishRateHz, mu::middleware::EcalProtoPublisher<camera_tracking::PosePacket>& pub);
+void runStubLoop(int publishRateHz, middleware::EcalProtoPublisher<camera_tracking::PosePacket>& pub);
 
 } // namespace fanuc

@@ -50,10 +50,51 @@ MuCard {
             opacity: 0.6
         }
 
-        MuSparkline {
+        Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 80
-            values: backend.errorHistory
+            radius: 8
+            color: "#151225"
+            border.color: "#6b2696"
+            border.width: 1
+            clip: true
+
+            Canvas {
+                id: spark
+                anchors.fill: parent
+                anchors.margins: 6
+
+                property var values: backend.errorHistory
+                onValuesChanged: requestPaint()
+
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.reset()
+
+                    var n = values ? values.length : 0
+                    if (n < 2)
+                        return
+
+                    var minV = values[0], maxV = values[0]
+                    for (var i = 1; i < n; ++i) {
+                        if (values[i] < minV) minV = values[i]
+                        if (values[i] > maxV) maxV = values[i]
+                    }
+                    var range = maxV - minV
+                    if (range < 1e-9) range = 1
+
+                    ctx.strokeStyle = "#c8a5ff"
+                    ctx.lineWidth = 1.5
+                    ctx.beginPath()
+                    for (var j = 0; j < n; ++j) {
+                        var x = (j / (n - 1)) * width
+                        var y = height - ((values[j] - minV) / range) * height
+                        if (j === 0) ctx.moveTo(x, y)
+                        else ctx.lineTo(x, y)
+                    }
+                    ctx.stroke()
+                }
+            }
         }
 
         Item { Layout.fillHeight: true }

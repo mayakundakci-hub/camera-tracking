@@ -20,6 +20,9 @@ add_library(camera_tracking_proto ${PROTO_SRCS})
 target_link_libraries(camera_tracking_proto protobuf::libprotobuf)
 target_include_directories(camera_tracking_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+# --- shared middleware (eCAL pub/sub wrappers, see middleware/CMakeLists.txt) ---
+add_subdirectory(middleware)
+
 # --- NatNet SDK (required by backend/optitrack) ---
 # Proprietary, not on vcpkg -- download from OptiTrack's site (free account
 # required) and point CMake at the install root (contains include/ and lib/).
@@ -30,25 +33,6 @@ if (NOT NATNET_SDK_DIR)
                          "Pass -DNATNET_SDK_DIR=<path> to cmake.")
 endif()
 
-# --- mulib (UI library, brought in as a git submodule under external/) ---
-# One-time setup:
-#   git submodule add git@code.siemens-energy.com:psc-development/p2d2/software/mulib.git external/mulib
-#   git submodule update --init --recursive
-#
-# backend links mu::middleware now too (EcalProtoPublisher/EcalProtoSubscriber,
-# see backend/src/main.cpp), not just frontend, so mulib is no longer optional
-# -- fail fast here instead of backend failing later with a confusing "cannot
-# find mu/middleware/EcalProtoTopic.hpp" compile error.
-if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/mulib/CMakeLists.txt")
-    message(FATAL_ERROR "external/mulib not found -- run "
-                         "'git submodule update --init --recursive'.")
-endif()
-# mulib ships its own Catch2 test suite (MU_BUILD_TESTS); force it off so
-# consuming this project doesn't also require a catch2 vcpkg dependency
-# just to build the frontend.
-set(MU_BUILD_TESTS OFF CACHE BOOL "Disable mulib's own tests when built as a subproject" FORCE)
-add_subdirectory(external/mulib)
-
 # --- backend: optitrack + fanuc[stub] + transform_sync merged into one process ---
 add_executable(backend
     backend/src/main.cpp
@@ -57,7 +41,7 @@ add_executable(backend
     backend/src/transform_sync.cpp
 )
 target_link_libraries(backend camera_tracking_proto eCAL::core nlohmann_json::nlohmann_json
-                       mu::core mu::middleware
+                       camera_tracking_middleware
                        "${NATNET_SDK_DIR}/lib/x64/NatNetLib.lib")
 target_include_directories(backend PRIVATE nodes/common "${NATNET_SDK_DIR}/include")
 
@@ -78,8 +62,44 @@ endif()
 # --- frontend (QtQuick/QML, Material style via mulib's Mu.Material) ---
 # Defined in its own frontend/CMakeLists.txt -- see the comment there for why
 # (qmlimportscanner's -rootPath == this target's SOURCE_DIR).
-# mulib itself was already pulled in above (backend needs it too now).
+#
+# --- Munera SDK (mulib + ludus) ---
+# Layering: arena (data/transport) -> ludus (headless domain services) ->
+# mulib (Qt/QML presentation). This app uses the top two:
+#   mulib  -- Mu.Material/Mu.Cad QML + mu::core/mu::robot (viewport UI)
+#   ludus  -- URDF import + forward kinematics (Ludus::Robot)
+#
+# Consumed as local source subprojects rather than as ports from the private
+# Munera vcpkg registry. Both are under active development in the sibling
+# checkout, and ports would force a commit+push+SHA-bump cycle per change; the
+# registry's ludus ref also still predates the URDF importer this app needs.
+# Switch to find_package(MuLib/Ludus CONFIG) once those ports are current.
 if (Qt6_FOUND)
+    set(MUNERA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Munera" CACHE PATH
+        "Path to the Munera SDK checkout (contains mulib/ and ludus/)")
+    foreach(_munera_repo mulib ludus)
+        if (NOT EXISTS "${MUNERA_DIR}/${_munera_repo}/CMakeLists.txt")
+            message(FATAL_ERROR
+                "Munera '${_munera_repo}' not found at ${MUNERA_DIR}/${_munera_repo} -- "
+                "clone the Munera SDK next to this repo, or pass -DMUNERA_DIR=<path>.")
+        endif()
+    endforeach()
+
+    # mulib's defaults already cover core/geometry/model/cad/qml/robot plus the
+    # QML plugins; only its Catch2 test suite needs forcing off so consuming it
+    # doesn't drag in a catch2 dependency just to build the frontend.
+    set(MU_BUILD_TESTS OFF CACHE BOOL "Disable mulib's own tests when built as a subproject" FORCE)
+    add_subdirectory("${MUNERA_DIR}/mulib" "${CMAKE_BINARY_DIR}/mulib")
+
+    # ludus: only the robot library. Core requires Arena and Occt requires
+    # OpenCASCADE -- neither is used here, so keeping them off holds the extra
+    # vcpkg surface to just urdfdom (see vcpkg.json).
+    set(LUDUS_BUILD_CORE OFF CACHE BOOL "" FORCE)
+    set(LUDUS_BUILD_OCCT OFF CACHE BOOL "" FORCE)
+    set(LUDUS_BUILD_ROBOT ON CACHE BOOL "" FORCE)
+    set(LUDUS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${MUNERA_DIR}/ludus" "${CMAKE_BINARY_DIR}/ludus")
+
     add_subdirectory(frontend)
 endif()
 

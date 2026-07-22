@@ -1,11 +1,3 @@
-// =============================================================
-// transform_math.hpp
-//
-// Pure logic used by backend's transform_sync part, deliberately kept
-// free of eCAL/protobuf/NatNet dependencies so it can be unit tested
-// in isolation (see tests/test_smoke.cpp). backend/src/main.cpp wires
-// this logic up to the actual eCAL subscribers/publishers.
-// =============================================================
 #pragma once
 
 #include <nlohmann/json.hpp>
@@ -16,7 +8,9 @@
 #include <stdexcept>
 #include <string>
 
-// ---- calibration transform: optitrack_world -> fanuc_base ----
+// ---- calibration transform: fanuc_base -> optitrack_world ----
+// apply() maps a point from the FANUC base frame into the OptiTrack world
+// frame, so validation compares both systems in the camera's (OptiTrack) frame.
 struct RigidTransform {
     std::array<std::array<double,3>,3> R { { {1,0,0}, {0,1,0}, {0,0,1} } };
     std::array<double,3>               T { 0.0, 0.0, 0.0 };
@@ -63,11 +57,12 @@ struct ErrorResult {
     double x_mm, y_mm, z_mm, total_mm;
 };
 
-// Pure error computation: given a camera point already transformed into
-// the fanuc_base frame (meters) and the fanuc point (meters), compute
-// the per-axis and total error in millimeters. Extracted as its own
-// function specifically so the "meters -> mm, then euclidean norm" logic
-// has one tested implementation instead of being inlined in a lambda.
+// Pure error computation: given two points in the SAME frame (now the
+// optitrack_world frame -- the raw OptiTrack camera point, and the FANUC point
+// transformed into it), both in meters, compute the per-axis and total error in
+// millimeters. Extracted as its own function specifically so the
+// "meters -> mm, then euclidean norm" logic has one tested implementation
+// instead of being inlined in a lambda.
 inline ErrorResult computeError(double cam_x, double cam_y, double cam_z,
                                  double fanuc_x, double fanuc_y, double fanuc_z)
 {

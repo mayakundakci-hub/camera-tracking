@@ -1,0 +1,18 @@
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+	<xacro:include filename="fanuc_m710ic50.urdf"/>
+	<xacro:include filename="Hand/Hand.urdf.xacro"/>
+<!-- note: we use almost all meshes from the M-710iC/50 as only links 2 and 4 are different. -->
+	<xacro:macro name="fanuc_m710ic50_WithHand" params="prefix handColor">
+		<xacro:fanuc_m710ic50 prefix="${prefix}"/>
+		<xacro:Hand prefix="${prefix}" color="${handColor}"/>
+		
+		<joint name="${prefix}_moat_tip_to_${prefix}_hand" type="fixed">
+			<origin xyz="0 871.22 0" rpy="0 0 0" />
+			<parent link="${prefix}_moat" />
+			<child link="${prefix}_hand_link_base" />
+		</joint>
+		
+	</xacro:macro>
+</robot>
+
+

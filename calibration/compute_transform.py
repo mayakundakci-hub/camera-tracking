@@ -49,17 +49,20 @@ def _is_collinear(pts: np.ndarray, tol: float = 1e-6) -> bool:
     return True
 
 
-def kabsch(opti_pts: np.ndarray, fanuc_pts: np.ndarray):
+def kabsch(source_pts: np.ndarray, target_pts: np.ndarray):
     """
-    Solve for R, T such that: fanuc_pts ~= R @ opti_pts.T + T
-    i.e. B = R*A + T, where A = opti_pts, B = fanuc_pts (matches the
+    Solve for R, T such that: target_pts ~= R @ source_pts.T + T
+    i.e. B = R*A + T, where A = source_pts, B = target_pts (matches the
     naming convention in the acupuncture paper's eq. B = RA + T).
+
+    This project registers fanuc -> optitrack, so callers pass
+    source=fanuc, target=opti. The function itself is direction-agnostic.
 
     Returns R (3x3), T (3,), residuals (per-point distance after
     applying the transform, same units as your input points).
     """
-    A = opti_pts
-    B = fanuc_pts
+    A = source_pts
+    B = target_pts
 
     centroid_A = A.mean(axis=0)
     centroid_B = B.mean(axis=0)
@@ -92,7 +95,8 @@ def main():
     args = ap.parse_args()
 
     fanuc_pts, opti_pts = load_points(args.csv_path)
-    R, T, residuals = kabsch(opti_pts, fanuc_pts)
+    # Register fanuc -> optitrack: solve opti ~= R @ fanuc + T (source=fanuc).
+    R, T, residuals = kabsch(fanuc_pts, opti_pts)
 
     residuals_mm = residuals if args.residual_units_are_mm else residuals * 1000.0
     mean_residual_mm = float(np.mean(residuals_mm))
@@ -106,7 +110,7 @@ def main():
               "unit mismatch (mm vs m), or a marker offset error before trusting this transform.")
 
     out = {
-        "_comment": "Rigid transform optitrack_world -> fanuc_base, computed via Kabsch/SVD point registration.",
+        "_comment": "Rigid transform fanuc_base -> optitrack_world, computed via Kabsch/SVD point registration.",
         "rotation": R.tolist(),
         "translation_m": T.tolist(),
         "registration_residual_mm": mean_residual_mm,

@@ -27,6 +27,7 @@
     "qtquick3d",
     "opencascade",
     "spdlog",
-    "cli11"
+    "cli11",
+    "urdfdom"
   ]
 }

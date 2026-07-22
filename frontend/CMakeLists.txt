@@ -1,7 +1,12 @@
 # --- frontend (QtQuick/QML, Material style via mulib's Mu.Material) ---
-# Only mu_core/mu_middleware are linked from mulib (kept for future use, e.g.
-# Geometry2D/IBus utilities) -- rcu_qt_widgets (Widgets-only) isn't needed
-# since the app no longer uses Qt Widgets.
+# Linked from the Munera SDK:
+#   mu::core    -- general utilities (kept for future use, e.g. Geometry2D)
+#   mu::robot   -- RobotVisualModel, the list model MuMultiModelView renders
+#   Ludus::Robot-- URDF import + forward kinematics behind RobotScene
+# mu::cad is deliberately NOT linked: CadSceneGeometry is reached only through
+# the Mu.Cad QML plugin at runtime, never from this target's C++.
+# eCAL pub/sub moved from mu::middleware to the in-repo camera_tracking_middleware
+# component, and the Widgets-only helpers aren't needed (no Qt Widgets here).
 #
 # Kept in its own subdirectory (rather than the top-level CMakeLists.txt)
 # specifically so this target's SOURCE_DIR is frontend/, not the whole repo
@@ -12,6 +17,7 @@
 qt_add_executable(frontend
     src/main.cpp
     src/Backend.cpp
+    src/RobotScene.cpp
 )
 qt_add_qml_module(frontend
     URI CameraTracking
@@ -25,11 +31,39 @@ target_compile_features(frontend PRIVATE cxx_std_20)  # mulib's public headers r
 target_link_libraries(frontend PRIVATE
     camera_tracking_proto eCAL::core nlohmann_json::nlohmann_json
     Qt6::Quick Qt6::QuickControls2 Qt6::Qml
-    mu::core mu::middleware
+    mu::core mu::robot Ludus::Robot camera_tracking_middleware
 )
 target_include_directories(frontend PRIVATE ${CMAKE_SOURCE_DIR}/nodes/common)
 
-# Mu.Material (MuApp/MuAppBar/MuCard/MuSparkline/...) is a file-based QML
+# mulib assembles its whole QML import tree under ${CMAKE_BINARY_DIR}/qml:
+# file-based Mu.Material (including MuMultiModelView/MuOrbitViewport) plus the
+# *compiled* Mu.Cad and Mu.Robot plugins. MuMultiModelView does
+# `import Mu.Cad 1.0` for CadSceneGeometry, so that plugin -- and its POST_BUILD
+# copies of mu_cad.dll and Qt's private deps -- must exist before the
+# windeployqt step below runs. MuLibAllQmlPlugins is mulib's own aggregate over
+# all of it (including the mu_material_qml_files qmldir fix-up), so depending on
+# it covers the whole tree in one edge. The engine then resolves the tree via
+# the MULIB_QML_IMPORT_PATH import path added in main.cpp.
+add_dependencies(frontend MuLibAllQmlPlugins)
+
+# Which robot URDF the viewport loads at startup. Resolution order, first hit
+# wins (the first two are explicit overrides, the third is the repo default):
+#   1. CAMERA_TRACKING_ROBOT_URDF environment variable, read at runtime
+#   2. -DCAMERA_TRACKING_ROBOT_URDF=<path> cache override at configure time
+#   3. the flattened p2d2 cell shipped in Rendering/ (regenerate with
+#      scripts/flatten_xacro.py if the xacro sources change)
+# So a plain clone + configure + build renders the p2d2 cell with no setup.
+set(CAMERA_TRACKING_ROBOT_URDF "" CACHE FILEPATH
+    "Override the robot URDF shown in the viewport (empty = repo default Rendering/p2d2.urdf)")
+if (CAMERA_TRACKING_ROBOT_URDF)
+    set(_camera_tracking_robot_urdf "${CAMERA_TRACKING_ROBOT_URDF}")
+else()
+    set(_camera_tracking_robot_urdf "${CMAKE_SOURCE_DIR}/Rendering/p2d2.urdf")
+endif()
+target_compile_definitions(frontend PRIVATE
+    CAMERA_TRACKING_ROBOT_URDF="${_camera_tracking_robot_urdf}")
+
+# Mu.Material (MuApp/MuAppBar/MuCard/MuMultiModelView/...) is a file-based QML
 # module built by mulib's own CMakeLists.txt (qt_add_qml_module(...
 # NO_PLUGIN ...)) -- no plugin library to link, just a directory tree of
 # .qml files + a hand-written qmldir under ${CMAKE_BINARY_DIR}/qml/Mu,
@@ -37,24 +71,6 @@ target_include_directories(frontend PRIVATE ${CMAKE_SOURCE_DIR}/nodes/common)
 # CMake target.
 target_compile_definitions(frontend PRIVATE
     MULIB_QML_IMPORT_PATH="${CMAKE_BINARY_DIR}/qml")
-
-# qt_add_qml_module(mu_material_qml_plugin ...) in mulib's own CMakeLists.txt
-# auto-generates its own qmldir (with resource-relative, double-nested file
-# paths like "qml/Mu/Material/MuApp.qml") as a side effect of processing
-# QML_FILES; mulib's own mu_material_qml_files custom target is meant to
-# overwrite that with a correct, flat-path qmldir afterwards, but there's no
-# ordering guarantee between that target and this one (no CMake target links
-# Mu.Material, it's consumed purely via filesystem import path), so the
-# broken auto-generated version can still be what's on disk after frontend
-# finishes building. Force the ordering, then re-apply mulib's own (already
-# correct) fix script as the true last step.
-add_dependencies(frontend mu_material_qml_plugin mu_material_qml_files)
-add_custom_command(TARGET frontend POST_BUILD
-    COMMAND ${CMAKE_COMMAND}
-        "-DOUTPUT_FILE=${CMAKE_BINARY_DIR}/qml/Mu/Material/qmldir"
-        -P "${CMAKE_BINARY_DIR}/external/mulib/libs/mu_qml/WriteMuMaterialQmldir.cmake"
-    COMMENT "Re-applying mulib's Mu.Material qmldir fix"
-)
 
 # QML needs the whole QtQuick/Controls/Material (and Mu/Material) import
 # tree deployed next to the exe at runtime (not just one plugin DLL,

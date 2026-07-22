@@ -3,7 +3,7 @@
 // =============================================================
 #pragma once
 
-#include <mu/middleware/EcalProtoTopic.hpp>
+#include <middleware/EcalProtoTopic.hpp>
 #include "camera_tracking.pb.h"
 
 #include <NatNetTypes.h>
@@ -16,6 +16,6 @@ namespace optitrack {
 // Connects to Motive and registers the frame callback. Fatal on failure --
 // there is no point running fanuc/transform_sync without camera data.
 bool start(const std::string& motiveIp, int handRigidBodyId, NatNetClient& client,
-           mu::middleware::EcalProtoPublisher<camera_tracking::PosePacket>& pub);
+           middleware::EcalProtoPublisher<camera_tracking::PosePacket>& pub);
 
 } // namespace optitrack

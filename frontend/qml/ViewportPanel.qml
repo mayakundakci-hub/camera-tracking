@@ -9,54 +9,99 @@ MuCard {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 12
+        spacing: 8
 
-        Label {
+        RowLayout {
             Layout.fillWidth: true
-            text: qsTr("Viewport")
-            font.bold: true
-            font.pixelSize: 18
+
+            Label {
+                Layout.fillWidth: true
+                text: qsTr("Viewport")
+                font.bold: true
+                font.pixelSize: 18
+            }
+
+            Label {
+                text: robotScene.status
+                opacity: 0.6
+                font.pixelSize: 12
+                elide: Text.ElideMiddle
+                Layout.maximumWidth: 240
+            }
+
+            MuButton {
+                text: qsTr("Fit")
+                role: "tonal"
+                enabled: viewer.loadedCount > 0
+                onClicked: viewer.fitCamera()
+            }
         }
 
-        Label {
+        Rectangle {
             Layout.fillWidth: true
-            visible: backend.stale || !backend.valid
-            text: qsTr("NO SIGNAL")
-            color: Material.color(Material.Red)
-            font.bold: true
+            Layout.fillHeight: true
+            radius: 12
+            color: "#151225"
+            border.color: "#6b2696"
+            border.width: 1
+            clip: true
+
+            MuMultiModelView {
+                id: viewer
+                anchors.fill: parent
+                model: robotScene.model
+                active: viewer.loadedCount > 0
+                modelColor: "#c9a227"   // fallback only: links whose URDF visual has a
+                                        // <material><color> render with that color via the
+                                        // model's per-row "color" role; this yellow covers
+                                        // links with no material
+            }
+
+            Label {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: 10
+                visible: backend.stale || !backend.valid
+                text: qsTr("NO SIGNAL")
+                color: Material.color(Material.Red)
+                font.bold: true
+            }
+
+            Text {
+                anchors.centerIn: parent
+                visible: viewer.loadedCount === 0
+                text: robotScene.linkCount > 0 ? qsTr("Loading robot links…")
+                                               : robotScene.status
+                color: "#c8a5ff"
+                wrapMode: Text.WordWrap
+                width: parent.width * 0.72
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
-        Label {
+        RowLayout {
             Layout.fillWidth: true
-            text: qsTr("FANUC:  %1, %2, %3")
-                .arg(backend.fanucPos.x.toFixed(3))
-                .arg(backend.fanucPos.y.toFixed(3))
-                .arg(backend.fanucPos.z.toFixed(3))
-            opacity: backend.stale ? 0.4 : 1.0
-        }
+            spacing: 20
 
-        Label {
-            Layout.fillWidth: true
-            text: qsTr("Camera: %1, %2, %3")
-                .arg(backend.cameraPos.x.toFixed(3))
-                .arg(backend.cameraPos.y.toFixed(3))
-                .arg(backend.cameraPos.z.toFixed(3))
-            opacity: (backend.stale || !backend.valid) ? 0.4 : 1.0
-        }
+            Label {
+                text: qsTr("FANUC  %1, %2, %3")
+                    .arg(backend.fanucPos.x.toFixed(1))
+                    .arg(backend.fanucPos.y.toFixed(1))
+                    .arg(backend.fanucPos.z.toFixed(1))
+                opacity: backend.stale ? 0.4 : 1.0
+                font.pixelSize: 12
+            }
 
-        Item { Layout.fillHeight: true }
+            Label {
+                text: qsTr("Camera  %1, %2, %3")
+                    .arg(backend.cameraPos.x.toFixed(1))
+                    .arg(backend.cameraPos.y.toFixed(1))
+                    .arg(backend.cameraPos.z.toFixed(1))
+                opacity: (backend.stale || !backend.valid) ? 0.4 : 1.0
+                font.pixelSize: 12
+            }
 
-        Label {
-            // TODO: load environment STLs / URDF here and render the rotor +
-            // dual markers. Now that the frontend is QML, Qt Quick 3D is the
-            // natural fit (vs. Qt3D / QOpenGLWidget considered previously).
-            // TODO: marker convention. TODO: interpolate marker motion
-            // between samples instead of snapping to the latest sample.
-            Layout.fillWidth: true
-            wrapMode: Text.WordWrap
-            text: qsTr("3D rendering not implemented yet")
-            font.italic: true
-            opacity: 0.6
+            Item { Layout.fillWidth: true }
         }
     }
 }

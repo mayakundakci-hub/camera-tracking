@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+
+<robot name="fanuc_m710ic45m_WithHand" xmlns:xacro="http://wiki.ros.org/xacro">
+	<xacro:include filename="fanuc_m710ic50_WithHand.urdf"/>
+	<link name="root" />
+	
+	<link name="rail_link">
+        <visual>
+            <geometry>
+                <mesh filename="Rail\visual\Rail.stl" />
+            </geometry>
+            <material name="">
+                <color rgba="0.5 0.5 0.5 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="Rail\collision\Rail.stl" />
+            </geometry>
+        </collision>
+    </link>
+	
+	<joint name="root_to_rail" type="fixed">
+		<origin xyz="0 0 0" rpy="0 0 0" />
+		<parent link="root" />
+		<child link="rail_link" />
+	</joint>
+
+	<xacro:fanuc_m710ic50_WithHand prefix="Left" handColor="0 0 1 1"/>
+	<xacro:fanuc_m710ic50_WithHand prefix="Right" handColor="1 0 0 1"/>
+	
+</robot>

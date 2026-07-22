@@ -10,8 +10,7 @@
   "optitrack": {
     "motive_server_ip": "127.0.0.1",
     "hand_rigid_body_id": 1,
-    "rotor_rigid_body_id": 2,
-    "required": false,
+    "required": true,
     "_note": "rotor_rigid_body_id only used if you go the tracked-fixture route instead of a fixed CAD offset. required=false runs backend with no Motive/NatNet hardware at all (dev/demo mode) -- transform_sync will always report valid=false, since there's no camera data to match against. Set true once Motive is actually up."
   },
 

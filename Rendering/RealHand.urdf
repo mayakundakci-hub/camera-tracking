@@ -1,0 +1,106 @@
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+	<xacro:macro name="RealHand" params="prefix color">
+		<link name="${prefix}_hand_link_base">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_base.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="${color}" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_base.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<link name="${prefix}_hand_link_1">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_1.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="${color}" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_1.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_hand_base_to_${prefix}_hand_link_1" type="revolute">
+            <origin xyz="0 44.67 0" rpy="0 0 0" />
+            <parent link="${prefix}_hand_link_base" />
+            <child link="${prefix}_hand_link_1" />
+			<axis xyz="0 0 1" />
+			<limit lower="-1.6" upper="1.6" effort="0" velocity="0" />
+		</joint>
+		<link name="${prefix}_hand_link_2">
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_2.STL" />
+				</geometry>
+				<material name="">
+					<color rgba="${color}" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_hand_link_2.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_hand_link_1_to_${prefix}_hand_link_2" type="revolute">
+            <origin xyz="0 270. 0" rpy="0 0 0" />
+            <parent link="${prefix}_hand_link_1" />
+            <child link="${prefix}_hand_link_2" />
+			<axis xyz="0 0 1" />
+			<limit lower="-1.6" upper="1.6" effort="0" velocity="0" />
+		</joint>
+		<link
+			name="${prefix}_tool_rotate">
+			<visual>
+				<origin
+					xyz="0 0 0"
+					rpy="0 0 0" />
+				<geometry>
+					<mesh
+						filename="FADO/EOAT_tool_rotate.STL" />
+				</geometry>
+				<material
+					name="">
+					<color
+						rgba="1 1 0 1" />
+				</material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="FADO/EOAT_tool_rotate.STL" />
+				</geometry>
+			</collision>
+		</link>
+		<joint name="${prefix}_hand_link_2_to_${prefix}_tool_rotate" type="revolute">
+            <origin xyz="0 61 56.75" rpy="0 0 0" />
+            <parent link="${prefix}_hand_link_2" />
+            <child link="${prefix}_tool_rotate" />
+			<axis xyz="0 1 0" />
+			<limit lower="-3.1416" upper="3.1416" effort="0" velocity="0" />
+		</joint>
+		<link name ="${prefix}_tool_0"/>
+		<joint name="${prefix}_tool_rotate_to_${prefix}_tool_0" type="fixed">
+            <origin xyz="0 53.652 0" rpy="0 0 0" />
+            <parent link="${prefix}_tool_rotate" />
+            <child link="${prefix}_tool_0" />
+			<axis xyz="0 0 0" />
+		</joint>
+	</xacro:macro>
+</robot>
