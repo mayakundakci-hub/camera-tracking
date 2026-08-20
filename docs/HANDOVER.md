@@ -435,7 +435,8 @@ Then you are ready to run. This could be streamlined.
 
 ## That's it!
 
-you can refer to docs\system-test.md for a full system run for the P2D2 software. 
+You can refer to [docs/system-test.md](docs/system-test.md) for a full system run for the P2D2
+software.
 Feel free to reach out to me if you have any questions
 
 (412)9803142 or maya.kundakci@gmail.com

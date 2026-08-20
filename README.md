@@ -383,8 +383,8 @@ See [docs/architecture.md](docs/architecture.md) for the full frame/placement mo
 
 ## Development
 
-See [HANDOVER.md](HANDOVER.md) for a deeper walkthrough of the placement/comparison pipeline,
-the Munera (`mulib`/`ludus`) dependency, and known traps in the build.
+See [HANDOVER.md](docs/HANDOVER.md) for a deeper walkthrough of the placement/comparison pipeline,
+the Munera (`mulib`/`ludus`) dependency, and known traps in the build. See docs [architecture.md](docs/architecture.md) for a better overview of the system architecture.
 
 ## Roadmap
 
