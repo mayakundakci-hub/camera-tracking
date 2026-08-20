@@ -6,10 +6,9 @@
 #include "AppState.hpp"
 #include "EcalLayer.hpp"
 
-
 class Backend : public QObject {
     Q_OBJECT
-    
+
     Q_PROPERTY(QVariantList comparisons READ comparisons NOTIFY dataChanged)
 
     // --- workflow screens -------------
@@ -39,13 +38,13 @@ class Backend : public QObject {
     Q_PROPERTY(QVariantList trackingRows READ trackingRows NOTIFY dataChanged)
 
     // --- camera-measured joint angles ---------------------------------------
-    
+
     Q_PROPERTY(QVariantList jointRows READ jointRows NOTIFY dataChanged)
-    
+
     Q_PROPERTY(QString jointStatus READ jointStatus NOTIFY dataChanged)
 
     // --- logging ------------------------------------------------------------
-    
+
     Q_PROPERTY(bool logRequested READ logRequested WRITE setLogRequested NOTIFY dataChanged)
     Q_PROPERTY(bool loggingActive READ loggingActive NOTIFY dataChanged)
 
@@ -54,7 +53,7 @@ class Backend : public QObject {
     Q_PROPERTY(QString anchorFrame READ anchorFrame NOTIFY dataChanged)
     Q_PROPERTY(QString anchorStatus READ anchorStatus NOTIFY dataChanged)
     Q_PROPERTY(QString placementSummary READ placementSummary NOTIFY dataChanged)
-    
+
     Q_PROPERTY(bool jointsLive READ jointsLive NOTIFY dataChanged)
 
     Q_PROPERTY(double viewPitchDeg READ viewPitchDeg CONSTANT)
@@ -78,7 +77,7 @@ public:
     QVariantList reviewComparisons() const { return reviewComparisons_; }
     QVariantList trackingRows() const { return trackingRows_; }
     QVariantList jointRows() const { return jointRows_; }
-    QString      jointStatus() const { return jointStatus_; }
+    QString jointStatus() const { return jointStatus_; }
 
     bool logRequested() const { return logRequested_; }
     void setLogRequested(bool on);
@@ -93,7 +92,6 @@ public:
     double reviewWarnDeg() const { return reviewWarnDeg_; }
     double reviewCriticalMm() const { return reviewCriticalMm_; }
     double reviewCriticalDeg() const { return reviewCriticalDeg_; }
-
 
     Q_INVOKABLE void begin();
 
@@ -126,7 +124,7 @@ private:
     void panelTick();
     void publishSessionControl();
 
-    AppState  state_;
+    AppState state_;
     EcalLayer ecal_;
     QTimer viewportTimer_;
     QTimer panelTimer_;
@@ -145,28 +143,28 @@ private:
     QVariantList reviewComparisons_;
     QVariantList trackingRows_;
     QVariantList jointRows_;
-    QString      jointStatus_;
+    QString jointStatus_;
 
-    Screen  screen_                  = Home;
-    bool    readyToBegin_            = false;
+    Screen screen_     = Home;
+    bool readyToBegin_ = false;
     QString beginBlockedReason_;
-    bool    anyGated_                = false;
+    bool anyGated_ = false;
 
-    bool    reviewAccepted_          = false;
-    bool    reviewShouldRecalibrate_ = false;
-    double  reviewSeverity_          = 0.0;
-    double  reviewWorstMm_           = 0.0;
-    double  reviewWorstDeg_          = 0.0;
+    bool reviewAccepted_          = false;
+    bool reviewShouldRecalibrate_ = false;
+    double reviewSeverity_        = 0.0;
+    double reviewWorstMm_         = 0.0;
+    double reviewWorstDeg_        = 0.0;
     QString reviewVerdict_;
 
-    bool    logRequested_            = true;
+    bool logRequested_ = true;
 
     double reviewWarnMm_      = 5.0;
     double reviewWarnDeg_     = 0.5;
     double reviewCriticalMm_  = 25.0;
     double reviewCriticalDeg_ = 2.0;
 
-    bool stale_ = true;
+    bool stale_         = true;
     bool sceneComplete_ = false;
     QString anchorFrame_;
     QString anchorStatus_;

@@ -18,11 +18,9 @@
 #define M_PI 3.14159265358979323846   // MSVC does not define it without _USE_MATH_DEFINES
 #endif
 
-Backend::Backend(QObject* parent)
-    : QObject(parent)
-    , ecal_(state_)
+Backend::Backend(QObject* parent) : QObject(parent), ecal_(state_)
 {
-    
+
     const auto& cfg = Config::load();
     if (cfg.contains("frontend") && cfg["frontend"].contains("view"))
     {
@@ -34,7 +32,7 @@ Backend::Backend(QObject* parent)
 
     if (cfg.contains("review"))
     {
-        const auto& r = cfg["review"];
+        const auto& r      = cfg["review"];
         reviewWarnMm_      = r.value("warn_mm", reviewWarnMm_);
         reviewWarnDeg_     = r.value("warn_deg", reviewWarnDeg_);
         reviewCriticalMm_  = r.value("critical_mm", reviewCriticalMm_);
@@ -48,15 +46,19 @@ Backend::Backend(QObject* parent)
     viewportTimer_.start(16);   // viewport @ ~60fps
 
     connect(&panelTimer_, &QTimer::timeout, this, &Backend::panelTick);
-    panelTimer_.start(100);     // readouts @ 10Hz (readability)
+    panelTimer_.start(100);   // readouts @ 10Hz (readability)
 }
 
 QString Backend::screenTitle() const
 {
-    switch (screen_) {
-        case RotorPlacement:   return QStringLiteral("Rotor Placement");
-        case PositionTracking: return QStringLiteral("Position Tracking");
-        case Home:             break;
+    switch (screen_)
+    {
+        case RotorPlacement:
+            return QStringLiteral("Rotor Placement");
+        case PositionTracking:
+            return QStringLiteral("Position Tracking");
+        case Home:
+            break;
     }
     return QString();
 }
@@ -90,7 +92,8 @@ void Backend::publishSessionControl()
                                 QDateTime::currentMSecsSinceEpoch() / 1000.0);
 }
 
-void Backend::viewportTick() {
+void Backend::viewportTick()
+{
     havePlacements_ = state_.havePlacements();
     if (havePlacements_) placements_ = state_.placements();
 
@@ -103,16 +106,16 @@ void Backend::viewportTick() {
     emit viewportChanged();
 }
 
-void Backend::panelTick() {
+void Backend::panelTick()
+{
     stale_ = state_.isStale();
 
     const ScenePlacementsPacket scene = state_.placements();
-    sceneComplete_ = scene.complete();
-    anchorFrame_ = QString::fromStdString(scene.anchor_frame());
+    sceneComplete_                    = scene.complete();
+    anchorFrame_                      = QString::fromStdString(scene.anchor_frame());
 
-    anchorStatus_ = scene.anchor_in_mocap().valid()
-                        ? QStringLiteral("anchored")
-                        : QStringLiteral("NOT ANCHORED");
+    anchorStatus_ = scene.anchor_in_mocap().valid() ? QStringLiteral("anchored")
+                                                    : QStringLiteral("NOT ANCHORED");
 
     int placed = 0;
     for (const auto& p : scene.placements())
@@ -120,7 +123,8 @@ void Backend::panelTick() {
     placementSummary_ = QStringLiteral("%1/%2 placed").arg(placed).arg(scene.placements_size());
 
     std::unordered_map<std::string, const PlacedPose*> poseById;
-    for (const auto& p : scene.placements()) poseById.emplace(p.placement_id(), &p);
+    for (const auto& p : scene.placements())
+        poseById.emplace(p.placement_id(), &p);
 
     const auto euler = [](const PlacedPose& p) {
         const Eigen::Quaterniond q(p.quat_w(), p.quat_x(), p.quat_y(), p.quat_z());
@@ -130,17 +134,16 @@ void Backend::panelTick() {
                          static_cast<float>(e.z() * 180.0 / M_PI));
     };
 
-    const auto fillSide = [&](QVariantMap& row, const QString& prefix,
-                              const std::string& id) {
-        const auto it = poseById.find(id);
-        const bool ok = it != poseById.end() && it->second->valid();
+    const auto fillSide = [&](QVariantMap& row, const QString& prefix, const std::string& id) {
+        const auto it         = poseById.find(id);
+        const bool ok         = it != poseById.end() && it->second->valid();
         row[prefix + "Valid"] = ok;
         if (!ok) return;
-        const PlacedPose& p = *it->second;
-        row[prefix + "XMm"] = p.pos_x() * 1000.0;
-        row[prefix + "YMm"] = p.pos_y() * 1000.0;
-        row[prefix + "ZMm"] = p.pos_z() * 1000.0;
-        const QVector3D e = euler(p);
+        const PlacedPose& p      = *it->second;
+        row[prefix + "XMm"]      = p.pos_x() * 1000.0;
+        row[prefix + "YMm"]      = p.pos_y() * 1000.0;
+        row[prefix + "ZMm"]      = p.pos_z() * 1000.0;
+        const QVector3D e        = euler(p);
         row[prefix + "RollDeg"]  = e.x();
         row[prefix + "PitchDeg"] = e.y();
         row[prefix + "YawDeg"]   = e.z();
@@ -150,16 +153,17 @@ void Backend::panelTick() {
     reviewComparisons_.clear();
     trackingRows_.clear();
 
-    double worstSeverity  = 0.0;
-    double worstMm        = 0.0;
-    double worstDeg       = 0.0;
-    bool   anyGated       = false;
-    bool   allGatedValid  = true;
-    bool   overWarnMm     = false;
-    bool   overWarnDeg    = false;
+    double worstSeverity = 0.0;
+    double worstMm       = 0.0;
+    double worstDeg      = 0.0;
+    bool anyGated        = false;
+    bool allGatedValid   = true;
+    bool overWarnMm      = false;
+    bool overWarnDeg     = false;
 
     const ComparisonPacket deltas = state_.comparisons();
-    for (const auto& d : deltas.deltas()) {
+    for (const auto& d : deltas.deltas())
+    {
         QVariantMap row;
         row["objectId"]      = QString::fromStdString(d.object_id());
         row["a"]             = QString::fromStdString(d.a());
@@ -179,17 +183,20 @@ void Backend::panelTick() {
         if (d.review_gated())
         {
             anyGated = true;
-            if (!d.valid()) { allGatedValid = false; }
+            if (!d.valid())
+            {
+                allGatedValid = false;
+            }
             else
             {
                 const double sMm  = d.distance_mm() / reviewCriticalMm_;
                 const double sDeg = d.angle_deg() / reviewCriticalDeg_;
-                worstSeverity = std::max({worstSeverity, sMm, sDeg});
-                worstMm       = std::max(worstMm, d.distance_mm());
-                worstDeg      = std::max(worstDeg, d.angle_deg());
+                worstSeverity     = std::max({worstSeverity, sMm, sDeg});
+                worstMm           = std::max(worstMm, d.distance_mm());
+                worstDeg          = std::max(worstDeg, d.angle_deg());
 
-                if (d.distance_mm() >= reviewWarnMm_)  overWarnMm  = true;
-                if (d.angle_deg()   >= reviewWarnDeg_) overWarnDeg = true;
+                if (d.distance_mm() >= reviewWarnMm_) overWarnMm = true;
+                if (d.angle_deg() >= reviewWarnDeg_) overWarnDeg = true;
             }
             reviewComparisons_.append(row);
         }
@@ -197,8 +204,8 @@ void Backend::panelTick() {
         {
 
             QVariantMap tracked = row;
-            tracked["aId"] = row["a"];
-            tracked["bId"] = row["b"];
+            tracked["aId"]      = row["a"];
+            tracked["bId"]      = row["b"];
             fillSide(tracked, QStringLiteral("a"), d.a());
             fillSide(tracked, QStringLiteral("b"), d.b());
             trackingRows_.append(tracked);
@@ -210,18 +217,19 @@ void Backend::panelTick() {
     // --- camera-measured joint angles ---
     jointRows_.clear();
     const JointEstimatePacket est = state_.jointEstimates();
-    for (const auto& j : est.joints()) {
+    for (const auto& j : est.joints())
+    {
         QVariantMap row;
-        row["jointId"]        = QString::fromStdString(j.joint_id());
-        row["objectId"]       = QString::fromStdString(j.object_id());
-        row["estimated"]      = j.estimated();
-        row["skipReason"]     = QString::fromStdString(j.skip_reason());
-        row["thetaDeg"]       = j.theta_deg();
-        row["ageS"]           = j.age_s();
-        row["clamped"]        = j.clamped();
-        row["unconstrained"]  = j.unconstrained();
-        row["lowerDeg"]       = j.lower_deg();
-        row["upperDeg"]       = j.upper_deg();
+        row["jointId"]       = QString::fromStdString(j.joint_id());
+        row["objectId"]      = QString::fromStdString(j.object_id());
+        row["estimated"]     = j.estimated();
+        row["skipReason"]    = QString::fromStdString(j.skip_reason());
+        row["thetaDeg"]      = j.theta_deg();
+        row["ageS"]          = j.age_s();
+        row["clamped"]       = j.clamped();
+        row["unconstrained"] = j.unconstrained();
+        row["lowerDeg"]      = j.lower_deg();
+        row["upperDeg"]      = j.upper_deg();
 
         row["radialErrorMm"]  = j.radial_error_mm();
         row["axialErrorMm"]   = j.axial_error_mm();
@@ -250,11 +258,14 @@ void Backend::panelTick() {
     reviewWorstDeg_          = worstDeg;
     anyGated_                = anyGated;
 
-    if (overWarnMm && overWarnDeg)   reviewVerdict_ = QStringLiteral("position and orientation");
-    else if (overWarnMm)             reviewVerdict_ = QStringLiteral("position");
-    else if (overWarnDeg)            reviewVerdict_ = QStringLiteral("orientation");
-    else                             reviewVerdict_.clear();
-
+    if (overWarnMm && overWarnDeg)
+        reviewVerdict_ = QStringLiteral("position and orientation");
+    else if (overWarnMm)
+        reviewVerdict_ = QStringLiteral("position");
+    else if (overWarnDeg)
+        reviewVerdict_ = QStringLiteral("orientation");
+    else
+        reviewVerdict_.clear();
 
     if (stale_)
     {
@@ -271,7 +282,6 @@ void Backend::panelTick() {
         readyToBegin_ = true;
         beginBlockedReason_.clear();
     }
-
 
     publishSessionControl();
 

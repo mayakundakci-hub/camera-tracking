@@ -18,8 +18,7 @@ private:
     static nlohmann::json loadFromDisk(const std::string& path)
     {
         std::ifstream f(path);
-        if (!f.is_open())
-            throw std::runtime_error("Config: could not open " + path);
+        if (!f.is_open()) throw std::runtime_error("Config: could not open " + path);
         nlohmann::json j;
         f >> j;
         return j;
@@ -40,6 +39,6 @@ private:
             candidate = "../" + candidate;
         }
         throw std::runtime_error("Config: could not find " + filename +
-                                  " within 5 parent directories");
+                                 " within 5 parent directories");
     }
 };

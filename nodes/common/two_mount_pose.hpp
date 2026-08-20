@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "frames.hpp"
 
 #include <algorithm>
@@ -26,7 +25,7 @@ struct Geometry {
 };
 
 struct Construction {
-    bool        constructed{false};
+    bool constructed{false};
     std::string skip_reason;
 
     // T_parent_part.
@@ -35,7 +34,7 @@ struct Construction {
     double normal_disagreement_rad{0.0};
     double chord_out_of_plane_m{0.0};
     double normal_in_parent_error_rad{0.0};
-    bool   normal_in_parent_checked{false};
+    bool normal_in_parent_checked{false};
 };
 
 namespace detail {
@@ -46,12 +45,12 @@ namespace detail {
     return 2.0 * std::atan2((ua - ub).norm(), (ua + ub).norm());
 }
 
-}  // namespace detail
+}   // namespace detail
 
 [[nodiscard]] inline Construction construct(const frames::Transform& T_parent_a,
                                             const frames::Transform& T_parent_b,
-                                            const Geometry&          geometry,
-                                            const frames::FrameId&   partFrame)
+                                            const Geometry& geometry,
+                                            const frames::FrameId& partFrame)
 {
     if (T_parent_a.to != T_parent_b.to)
         throw frames::FrameError("twomount::construct: the two bodies are in different frames ('" +
@@ -73,8 +72,8 @@ namespace detail {
         return out;
     }
 
-    const frames::Vec3 chordCad     = geometry.chord();
-    const double       chordCadNorm = chordCad.norm();
+    const frames::Vec3 chordCad = geometry.chord();
+    const double chordCadNorm   = chordCad.norm();
     if (chordCadNorm < kDegenerateTol)
     {
         out.skip_reason = "mount_a and mount_b are the same point in CAD; there is no chord to "
@@ -83,7 +82,7 @@ namespace detail {
     }
     const frames::Vec3 cCad     = chordCad / chordCadNorm;
     const frames::Vec3 nCad     = geometry.normal_in_part.normalized();
-    const double       dCad     = cCad.dot(nCad);
+    const double dCad           = cCad.dot(nCad);
     const frames::Vec3 upCadRaw = nCad - dCad * cCad;
     if (upCadRaw.norm() < kDegenerateTol)
     {
@@ -110,17 +109,17 @@ namespace detail {
     }
     const frames::Vec3 nBar = nSum.normalized();
 
-    const frames::Vec3 pA        = T_parent_a.translation();
-    const frames::Vec3 pB        = T_parent_b.translation();
-    const frames::Vec3 chord     = pB - pA;
-    const double       chordNorm = chord.norm();
+    const frames::Vec3 pA    = T_parent_a.translation();
+    const frames::Vec3 pB    = T_parent_b.translation();
+    const frames::Vec3 chord = pB - pA;
+    const double chordNorm   = chord.norm();
     if (chordNorm < kDegenerateTol)
     {
         out.skip_reason = "the two bodies are at the same point; there is no chord to build on";
         return out;
     }
-    const frames::Vec3 c    = chord / chordNorm;
-    const double       dMes = c.dot(nBar);
+    const frames::Vec3 c = chord / chordNorm;
+    const double dMes    = c.dot(nBar);
 
     out.chord_error_m        = chordNorm - chordCadNorm;
     out.chord_out_of_plane_m = chordNorm * (dMes - dCad);
@@ -152,7 +151,7 @@ namespace detail {
         if (want.allFinite() && want.norm() > kDegenerateTol)
         {
             out.normal_in_parent_error_rad = detail::angleBetween(R * nCad, want);
-            out.normal_in_parent_checked = true;
+            out.normal_in_parent_checked   = true;
         }
     }
 
@@ -160,10 +159,10 @@ namespace detail {
     const frames::Vec3 midCad      = 0.5 * (geometry.mount_a_m + geometry.mount_b_m);
     const frames::Vec3 origin      = midMeasured - R * midCad;
 
-    out.pose = frames::make(T_parent_a.to, partFrame, origin, frames::Quat(R),
-                            frames::combineStamps(T_parent_a.stamp, T_parent_b.stamp));
+    out.pose        = frames::make(T_parent_a.to, partFrame, origin, frames::Quat(R),
+                                   frames::combineStamps(T_parent_a.stamp, T_parent_b.stamp));
     out.constructed = true;
     return out;
 }
 
-}  // namespace twomount
+}   // namespace twomount

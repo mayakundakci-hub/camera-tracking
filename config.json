@@ -13,7 +13,7 @@
 
   "scene": {
     "_comment": "The scene manifest lists which objects are active and which placement anchors the world. Everything about WHAT is tracked lives there and in config/objects/*.json, not here — swapping a rotor is a manifest edit, not a change to this file.",
-    "manifest": "config/scene.json",
+    "manifest": "config/scene_demo.json",
     "_publish_rate_note": "scene/placements is republished at this rate because eCAL has no latched topics: a frontend started after the backend would otherwise never see the scene.",
     "publish_rate_hz": 10
   },

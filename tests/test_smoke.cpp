@@ -12,8 +12,7 @@
 
 TEST(Config, ThrowsClearlyWhenFileNotFound)
 {
-    EXPECT_THROW(Config::load("this_file_does_not_exist_anywhere.json"),
-                 std::runtime_error);
+    EXPECT_THROW(Config::load("this_file_does_not_exist_anywhere.json"), std::runtime_error);
 }
 
 // NOTE: Config::load() caches its result in a function-local `static`, so a

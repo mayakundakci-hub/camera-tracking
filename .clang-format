@@ -1,0 +1,64 @@
+# Calibrated to the code that is already here, not to a house style imported from
+# elsewhere: 4-space indent, 100 columns (the longest line in the tree is 105),
+# Allman braces on functions and control statements, attached on classes and
+# namespaces, and the aligned member/assignment columns the headers already use.
+#
+# Run it with scripts/lint.py, which finds clang-format even when it is not on PATH.
+Language: Cpp
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+IndentCaseLabels: true
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: Always
+  AfterClass: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterExternBlock: false
+  BeforeElse: true
+  BeforeCatch: true
+  BeforeLambdaBody: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+# Assignment columns are deliberate throughout nodes/common -- the `out.field = ...`
+# blocks are read as columns, so they are kept. Declaration alignment is NOT enabled:
+# the source aligns struct members but not locals, and forcing it pads every unrelated
+# local out to the widest type in the block. Measured over the tree, leaving it off is
+# also the smaller diff.
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: None
+AlignTrailingComments: true
+
+# The trailing-comment gutter in the source is ~3 spaces (the enum in scene_config.hpp,
+# the member comments in MountOffset). LLVM's default of 1 pulls them all in tight.
+SpacesBeforeTrailingComments: 3
+
+# LLVM's default penalty of 60 is low enough that a long signature gets broken after
+# the return type -- `[[nodiscard]] frames::Transform` alone on a line, then the name.
+# This tree wraps the parameter list instead, which is the more readable of the two.
+PenaltyReturnTypeOnItsOwnLine: 1000
+
+# `if (!t) return;` is the established shape for an early-out and stays one line.
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: All
+AllowShortLambdasOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: false
+
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+SpaceAfterTemplateKeyword: true
+
+# Include order here is deliberate -- arena/eCAL/middleware/proto first, then the
+# project's own headers, then std -- and it is not alphabetical within those blocks.
+# Reordering it is a change no formatter should be making on its own.
+SortIncludes: Never
+
+# QML/JS is not clang-format's job; qmllint covers the QML (scripts/lint.py --qml).

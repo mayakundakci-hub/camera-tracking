@@ -18,4 +18,4 @@ using FrameCallback =
 bool start(const std::string& motiveIp, const std::string& localAddress, NatNetClient& client,
            FrameCallback onFrame);
 
-} // namespace optitrack
+}   // namespace optitrack

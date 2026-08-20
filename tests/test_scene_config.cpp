@@ -30,16 +30,20 @@ public:
     TempScene()
     {
         static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        const auto stamp   = std::chrono::steady_clock::now().time_since_epoch().count();
         root_ = fs::temp_directory_path() /
                 ("ct_scene_test_" + std::to_string(stamp) + "_" + std::to_string(counter++));
         fs::remove_all(root_);
         fs::create_directories(root_ / "config" / "objects");
     }
 
-    ~TempScene() { std::error_code ec; fs::remove_all(root_, ec); }
+    ~TempScene()
+    {
+        std::error_code ec;
+        fs::remove_all(root_, ec);
+    }
 
-    TempScene(const TempScene&) = delete;
+    TempScene(const TempScene&)            = delete;
     TempScene& operator=(const TempScene&) = delete;
 
     void manifest(const std::string& body) const { write(root_ / "config" / "scene.json", body); }
@@ -79,7 +83,7 @@ void writeAnchorOnly(const TempScene& t)
         "placements": [{"id": "rail_origin", "source": "static"}]})");
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // the happy path
@@ -111,7 +115,7 @@ TEST(SceneConfig, ResolvesAssetPathsAgainstRepoRoot)
         "visual_mesh": "Rendering/Rotor/RotorA.stl",
         "placements": [{"id": "rotor_expected", "source": "expected_pose", "topic": "rotor/pose"}]})");
 
-    const Scene s = t.load();
+    const Scene s       = t.load();
     const Object* rotor = s.findObject("rotor");
     ASSERT_TRUE(rotor);
     EXPECT_TRUE(fs::exists(rotor->visual_mesh));
@@ -133,7 +137,7 @@ TEST(SceneConfig, ConvertsMountOffsetToSi)
                 "quat_wxyz": [0.0, 1.0, 0.0, 0.0]}
         }]})");
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rail_origin");
     ASSERT_TRUE(p);
     // Authored in mm, stored in metres -- everything downstream is SI.
@@ -284,7 +288,7 @@ TEST(SceneConfig, OptitrackPlacementNeedsNothingBeyondItsAssetId)
             "id": "rail_origin", "source": "optitrack", "capture": "latched", "asset_id": 7}]
     })");
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rail_origin");
     ASSERT_TRUE(p);
     EXPECT_EQ(p->asset_id, 7);
@@ -500,10 +504,13 @@ TEST(SceneConfig, ReportsEveryProblemAtOnce)
             "id": "rail_origin", "source": "optitrack", "color": "octarine"}]
     })");
 
-    try {
+    try
+    {
         (void)t.load();
         FAIL() << "expected SceneConfigError";
-    } catch (const SceneConfigError& e) {
+    }
+    catch (const SceneConfigError& e)
+    {
         const std::string msg = e.what();
         EXPECT_NE(msg.find("missing.stl"), std::string::npos);   // bad mesh
         EXPECT_NE(msg.find("octarine"), std::string::npos);      // bad colour
@@ -528,14 +535,14 @@ TEST(SceneConfig, ParsesLatchOverridesAndConvertsToSi)
             "latch": {"min_samples": 480, "max_spread_mm": 4.0, "max_spread_deg": 0.25}}]
     })");
 
-    const scene::Scene s = t.load();
+    const scene::Scene s      = t.load();
     const scene::Placement* p = s.findPlacement("rail_origin");
     ASSERT_NE(p, nullptr);
 
     ASSERT_TRUE(p->latch.min_samples.has_value());
     EXPECT_EQ(*p->latch.min_samples, 480u);
     ASSERT_TRUE(p->latch.max_spread_m.has_value());
-    EXPECT_NEAR(*p->latch.max_spread_m, 0.004, 1e-12);          // mm -> m
+    EXPECT_NEAR(*p->latch.max_spread_m, 0.004, 1e-12);   // mm -> m
     ASSERT_TRUE(p->latch.max_spread_rad.has_value());
     EXPECT_NEAR(*p->latch.max_spread_rad, 0.25 * 3.14159265358979323846 / 180.0, 1e-12);
 
@@ -590,10 +597,13 @@ TEST(SceneConfig, RejectsNonsensicalLatchThresholds)
             "latch": {"min_samples": 0, "max_spread_mm": -1.0, "max_reject_fraction": 1.5}}]
     })");
 
-    try {
+    try
+    {
         (void)t.load();
         FAIL() << "expected SceneConfigError";
-    } catch (const SceneConfigError& e) {
+    }
+    catch (const SceneConfigError& e)
+    {
         const std::string msg = e.what();
         EXPECT_NE(msg.find("min_samples"), std::string::npos);
         EXPECT_NE(msg.find("max_spread_mm"), std::string::npos);
@@ -633,7 +643,7 @@ namespace {
 // "joint" block so a test can corrupt exactly one thing.
 void writeProjection(const TempScene& t, const std::string& jointBody,
                      const std::string& parentFrame = "base_opti",
-                     const std::string& measured = "j8_opti")
+                     const std::string& measured    = "j8_opti")
 {
     t.manifest(R"({"world_anchor": "rail_origin",
                    "objects": ["rail", "hand_base", "hand_j8"]})");
@@ -649,8 +659,10 @@ void writeProjection(const TempScene& t, const std::string& jointBody,
         "placements": [
             {"id": "j8_opti", "source": "optitrack", "capture": "continuous", "asset_id": 2},
             {"id": "j8_projected", "source": "projected",
-             "parent_frame": ")" + parentFrame + R"(", "measured": ")" + measured + R"(",
-             "joint": )" + jointBody + R"(}
+             "parent_frame": ")" +
+                            parentFrame + R"(", "measured": ")" + measured + R"(",
+             "joint": )" + jointBody +
+                            R"(}
         ]})");
 }
 
@@ -662,14 +674,14 @@ const char* kGoodJoint = R"({
     "lower_deg": -90.0, "upper_deg": 90.0,
     "reported_arm": "Left", "reported_index": 0})";
 
-}  // namespace
+}   // namespace
 
 TEST(SceneConfig, ParsesProjectedPlacementAndConvertsToSi)
 {
     TempScene t;
     writeProjection(t, kGoodJoint);
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("j8_projected");
     ASSERT_TRUE(p);
     EXPECT_EQ(p->source, Source::Projected);
@@ -705,10 +717,7 @@ TEST(SceneConfig, NormalisesTheJointAxis)
 
     auto scene = t.load();
 
-    EXPECT_NEAR(
-        scene.findPlacement("j8_projected")->joint->geometry.axis.norm(),
-        1.0,
-        1e-12);
+    EXPECT_NEAR(scene.findPlacement("j8_projected")->joint->geometry.axis.norm(), 1.0, 1e-12);
 }
 
 TEST(SceneConfig, ProjectedPlacementGeneratesTheResidualComparison)
@@ -718,7 +727,7 @@ TEST(SceneConfig, ProjectedPlacementGeneratesTheResidualComparison)
     TempScene t;
     writeProjection(t, kGoodJoint);
 
-    const Scene s = t.load();
+    const Scene s    = t.load();
     const auto pairs = s.comparisons();
     ASSERT_EQ(pairs.size(), 1u);
     EXPECT_EQ(pairs[0].object_id, "hand_j8");
@@ -735,10 +744,13 @@ TEST(SceneConfig, RejectsProjectedPlacementMissingItsParts)
     {
         TempScene t;
         writeProjection(t, body, parent, measured);
-        try {
+        try
+        {
             (void)t.load();
             ADD_FAILURE() << "expected a throw for missing " << needle;
-        } catch (const SceneConfigError& e) {
+        }
+        catch (const SceneConfigError& e)
+        {
             EXPECT_NE(std::string(e.what()).find(needle), std::string::npos) << e.what();
         }
     }
@@ -748,25 +760,33 @@ TEST(SceneConfig, RejectsJointBlockMissingItsGeometry)
 {
     const std::pair<const char*, const char*> cases[] = {
         {R"({"axis_point": {"position_mm": [0,0,0]}, "axis": [0,0,1],
-             "reported_arm": "Left", "reported_index": 0})", "zero_pose"},
+             "reported_arm": "Left", "reported_index": 0})",
+         "zero_pose"},
         {R"({"zero_pose": {"position_mm": [0,0,0]}, "axis": [0,0,1],
-             "reported_arm": "Left", "reported_index": 0})", "axis_point"},
+             "reported_arm": "Left", "reported_index": 0})",
+         "axis_point"},
         {R"({"zero_pose": {"position_mm": [0,0,0]}, "axis_point": {"position_mm": [0,0,0]},
-             "reported_arm": "Left", "reported_index": 0})", "axis"},
+             "reported_arm": "Left", "reported_index": 0})",
+         "axis"},
         {R"({"zero_pose": {"position_mm": [0,0,0]}, "axis_point": {"position_mm": [0,0,0]},
-             "axis": [0,0,1], "reported_index": 0})", "reported_arm"},
+             "axis": [0,0,1], "reported_index": 0})",
+         "reported_arm"},
         {R"({"zero_pose": {"position_mm": [0,0,0]}, "axis_point": {"position_mm": [0,0,0]},
-             "axis": [0,0,1], "reported_arm": "Left"})", "reported_index"},
+             "axis": [0,0,1], "reported_arm": "Left"})",
+         "reported_index"},
     };
 
     for (const auto& [body, needle] : cases)
     {
         TempScene t;
         writeProjection(t, body);
-        try {
+        try
+        {
             (void)t.load();
             ADD_FAILURE() << "expected a throw for missing " << needle;
-        } catch (const SceneConfigError& e) {
+        }
+        catch (const SceneConfigError& e)
+        {
             EXPECT_NE(std::string(e.what()).find(needle), std::string::npos) << e.what();
         }
     }
@@ -781,7 +801,8 @@ TEST(SceneConfig, RejectsADegenerateJointAxis)
         TempScene t;
         writeProjection(t, std::string(R"({
             "zero_pose": {"position_mm": [0,0,0]}, "axis_point": {"position_mm": [0,0,0]},
-            "axis": )") + axis + R"(, "reported_arm": "Left", "reported_index": 0})");
+            "axis": )") + axis +
+                               R"(, "reported_arm": "Left", "reported_index": 0})");
         EXPECT_THROW((void)t.load(), SceneConfigError) << axis;
     }
 }
@@ -811,10 +832,13 @@ TEST(SceneConfig, RejectsUnknownKeyInsideAJointBlock)
         "axis": [0,0,1], "axsi": [1,0,0],
         "reported_arm": "Left", "reported_index": 0})");
 
-    try {
+    try
+    {
         (void)t.load();
         ADD_FAILURE() << "expected a throw for the typo'd key";
-    } catch (const SceneConfigError& e) {
+    }
+    catch (const SceneConfigError& e)
+    {
         EXPECT_NE(std::string(e.what()).find("axsi"), std::string::npos) << e.what();
     }
 }
@@ -823,8 +847,7 @@ TEST(SceneConfig, RejectsJointOrMeasuredOnAPlacementThatDoesNotProject)
 {
     // Ignored rather than refused, these would read as honoured -- the same
     // reason a `latch` block on a continuous placement is an error.
-    for (const char* extra : {R"("measured": "base_opti")",
-                              R"("joint": {"axis": [0,0,1]})"})
+    for (const char* extra : {R"("measured": "base_opti")", R"("joint": {"axis": [0,0,1]})"})
     {
         TempScene t;
         t.manifest(R"({"world_anchor": "rail_origin", "objects": ["rail", "hand_base"]})");
@@ -833,7 +856,8 @@ TEST(SceneConfig, RejectsJointOrMeasuredOnAPlacementThatDoesNotProject)
         t.object("hand_base", std::string(R"({
             "id": "hand_base",
             "placements": [{"id": "base_opti", "source": "optitrack", "capture": "continuous",
-                            "asset_id": 1, )") + extra + "}]}");
+                            "asset_id": 1, )") +
+                                  extra + "}]}");
 
         EXPECT_THROW((void)t.load(), SceneConfigError) << extra;
     }
@@ -857,7 +881,7 @@ TEST(SceneConfig, RejectsALatchedProjection)
             {"id": "j8_opti", "source": "optitrack", "capture": "continuous", "asset_id": 2},
             {"id": "j8_projected", "source": "projected", "capture": "latched",
              "parent_frame": "base_opti", "measured": "j8_opti", "joint": )") +
-        kGoodJoint + "}]}");
+                            kGoodJoint + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -867,8 +891,8 @@ TEST(SceneConfig, RejectsAMeasuredThatIsNotARawContinuousMeasurement)
     // A projection corrects a raw per-frame measurement. A latched pose has no
     // per-frame sample; a static or projected one is not a measurement at all.
     const std::pair<const char*, const char*> cases[] = {
-        {"j8_projected", "itself"},          // its own output
-        {"rail_origin", "static"},           // not a measurement
+        {"j8_projected", "itself"},   // its own output
+        {"rail_origin", "static"},    // not a measurement
         {"nonexistent_body", "not a placement id"},
     };
 
@@ -900,7 +924,7 @@ TEST(SceneConfig, RejectsALatchedParentForAProjection)
             {"id": "j8_opti", "source": "optitrack", "capture": "continuous", "asset_id": 2},
             {"id": "j8_projected", "source": "projected",
              "parent_frame": "base_opti", "measured": "j8_opti", "joint": )") +
-        kGoodJoint + "}]}");
+                            kGoodJoint + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -931,15 +955,20 @@ TEST(SceneConfig, RejectsACycleInTheProjectionChain)
         "placements": [
             {"id": "raw", "source": "optitrack", "capture": "continuous", "asset_id": 2},
             {"id": "a", "source": "projected", "parent_frame": "b", "measured": "raw",
-             "joint": )") + joint + R"(},
+             "joint": )") +
+                         joint + R"(},
             {"id": "b", "source": "projected", "parent_frame": "a", "measured": "raw",
-             "joint": )" + joint + R"(}
+             "joint": )" +
+                         joint + R"(}
         ]})");
 
-    try {
+    try
+    {
         (void)t.load();
         ADD_FAILURE() << "expected a throw for the cycle";
-    } catch (const SceneConfigError& e) {
+    }
+    catch (const SceneConfigError& e)
+    {
         EXPECT_NE(std::string(e.what()).find("cycle"), std::string::npos) << e.what();
     }
 }
@@ -966,9 +995,11 @@ TEST(SceneConfig, AcceptsAChainOfProjections)
             {"id": "j9_opti", "source": "optitrack", "capture": "continuous", "asset_id": 3,
              "compare": false},
             {"id": "j8_projected", "source": "projected", "parent_frame": "base_opti",
-             "measured": "j8_opti", "joint": )") + joint + R"(},
+             "measured": "j8_opti", "joint": )") +
+                          joint + R"(},
             {"id": "j9_projected", "source": "projected", "parent_frame": "j8_projected",
-             "measured": "j9_opti", "joint": )" + joint + R"(}
+             "measured": "j9_opti", "joint": )" +
+                          joint + R"(}
         ]})");
 
     EXPECT_NO_THROW((void)t.load());
@@ -992,7 +1023,8 @@ TEST(SceneConfig, RejectsAProjectedWorldAnchor)
         "placements": [
             {"id": "j8_opti", "source": "optitrack", "capture": "continuous", "asset_id": 2},
             {"id": "j8_projected", "source": "projected", "parent_frame": "base_opti",
-             "measured": "j8_opti", "joint": )") + kGoodJoint + "}]}");
+             "measured": "j8_opti", "joint": )") +
+                            kGoodJoint + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -1044,18 +1076,19 @@ void writeConstruction(const TempScene& t, const std::string& construction,
             {"id": "mount_b", "source": "optitrack", "capture": "latched", "asset_id": 2,
              "compare": false, "visible": false},
             {"id": "rotor_opti", "source": "constructed", "capture": "latched",
-             "inputs": )") + inputs + R"(, "construction": )" + construction + R"(}
+             "inputs": )") +
+                          inputs + R"(, "construction": )" + construction + R"(}
         ]})");
 }
 
-}  // namespace
+}   // namespace
 
 TEST(SceneConfig, LoadsAConstructedPlacement)
 {
     TempScene t;
     writeConstruction(t, kGoodConstruction);
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rotor_opti");
     ASSERT_NE(p, nullptr);
     EXPECT_EQ(p->source, Source::Constructed);
@@ -1063,7 +1096,7 @@ TEST(SceneConfig, LoadsAConstructedPlacement)
     ASSERT_TRUE(p->construction.has_value());
 
     const auto& g = p->construction->geometry;
-    EXPECT_NEAR(g.mount_a_m.x(), 1.830, 1e-9);      // mm -> m, once, at the boundary
+    EXPECT_NEAR(g.mount_a_m.x(), 1.830, 1e-9);   // mm -> m, once, at the boundary
     EXPECT_NEAR(g.mount_a_m.z(), 0.700, 1e-9);
     EXPECT_NEAR(g.mount_b_m.y(), -0.700, 1e-9);
     EXPECT_NEAR(g.normal_axis.z(), 1.0, 1e-12);
@@ -1089,7 +1122,7 @@ TEST(SceneConfig, LoadsARailStyleConstruction)
         "mount_a": {"position_mm": [-5000.0, 0.0, 50.0]},
         "mount_b": {"position_mm": [5000.0, 0.0, 50.0]}})");
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rotor_opti");
     ASSERT_NE(p, nullptr);
     ASSERT_TRUE(p->construction.has_value());
@@ -1109,7 +1142,7 @@ TEST(SceneConfig, ExpectNormalInParentIsOptionalAndAbsentByDefault)
     TempScene t;
     writeConstruction(t, kGoodConstruction);
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rotor_opti");
     ASSERT_NE(p, nullptr);
     ASSERT_TRUE(p->construction.has_value());
@@ -1129,7 +1162,7 @@ TEST(SceneConfig, ExpectNormalInParentIsParsedAndNormalised)
         "mount_a": {"position_mm": [1830.0, 0.0, 700.0]},
         "mount_b": {"position_mm": [1830.0, -700.0, 0.0]}})");
 
-    const Scene s = t.load();
+    const Scene s      = t.load();
     const Placement* p = s.findPlacement("rotor_opti");
     ASSERT_NE(p, nullptr);
     ASSERT_TRUE(p->construction.has_value());
@@ -1152,7 +1185,8 @@ TEST(SceneConfig, ExpectNormalInParentRejectsANonDirection)
         writeConstruction(t, std::string(R"({
             "normal_axis": [0.0, 0.0, 1.0],
             "normal_in_part": [1.0, 0.0, 0.0],
-            "expect_normal_in_parent": )") + bad + R"(,
+            "expect_normal_in_parent": )") +
+                                 bad + R"(,
             "mount_a": {"position_mm": [1830.0, 0.0, 700.0]},
             "mount_b": {"position_mm": [1830.0, -700.0, 0.0]}})");
 
@@ -1188,7 +1222,8 @@ TEST(SceneConfig, ConstructedRefusesNonOptitrackInputs)
             {"id": "mount_b", "source": "expected_pose", "capture": "latched",
              "topic": "rotor/pose_expected", "compare": false},
             {"id": "rotor_opti", "source": "constructed", "capture": "latched",
-             "inputs": ["mount_a", "mount_b"], "construction": )") + kGoodConstruction + "}]}");
+             "inputs": ["mount_a", "mount_b"], "construction": )") +
+                          kGoodConstruction + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -1210,7 +1245,8 @@ TEST(SceneConfig, ConstructedRefusesMixedCapture)
             {"id": "mount_b", "source": "optitrack", "capture": "continuous", "asset_id": 2,
              "compare": false},
             {"id": "rotor_opti", "source": "constructed", "capture": "latched",
-             "inputs": ["mount_a", "mount_b"], "construction": )") + kGoodConstruction + "}]}");
+             "inputs": ["mount_a", "mount_b"], "construction": )") +
+                          kGoodConstruction + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -1283,7 +1319,7 @@ TEST(SceneConfig, ConstructionBlockOnANonConstructedPlacementIsAnError)
     t.object("rail", std::string(R"({
         "id": "rail",
         "placements": [{"id": "rail_origin", "source": "static", "construction": )") +
-        kGoodConstruction + "}]}");
+                         kGoodConstruction + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -1307,7 +1343,7 @@ TEST(SceneConfig, ConstructedRefusesADerivedInput)
              "inputs": ["mount_a", "mount_b"], "compare": false},
             {"id": "rotor_opti", "source": "constructed", "capture": "latched",
              "inputs": ["mount_a", "mount_avg"], "construction": )") +
-        kGoodConstruction + "}]}");
+                          kGoodConstruction + "}]}");
 
     EXPECT_THROW((void)t.load(), SceneConfigError);
 }
@@ -1325,9 +1361,11 @@ void writeConstructedAnchor(const TempScene& t, const char* bodyCapture = "latch
     t.object("rail", std::string(R"({
         "id": "rail",
         "placements": [
-            {"id": "rail_opti_left", "source": "optitrack", "capture": ")") + bodyCapture + R"(",
+            {"id": "rail_opti_left", "source": "optitrack", "capture": ")") +
+                         bodyCapture + R"(",
              "asset_id": 1, "compare": false, "visible": false},
-            {"id": "rail_opti_right", "source": "optitrack", "capture": ")" + bodyCapture + R"(",
+            {"id": "rail_opti_right", "source": "optitrack", "capture": ")" +
+                         bodyCapture + R"(",
              "asset_id": 2, "compare": false, "visible": false},
             {"id": "rail_origin", "source": "constructed", "capture": "latched",
              "inputs": ["rail_opti_left", "rail_opti_right"],
@@ -1339,7 +1377,7 @@ void writeConstructedAnchor(const TempScene& t, const char* bodyCapture = "latch
         ]})");
 }
 
-}  // namespace
+}   // namespace
 
 TEST(SceneConfig, AcceptsAConstructedWorldAnchor)
 {

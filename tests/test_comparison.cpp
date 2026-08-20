@@ -29,14 +29,18 @@ public:
     TempScene()
     {
         static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        const auto stamp   = std::chrono::steady_clock::now().time_since_epoch().count();
         root_ = scene::fs::temp_directory_path() /
                 ("ct_cmp_test_" + std::to_string(stamp) + "_" + std::to_string(counter++));
         scene::fs::remove_all(root_);
         scene::fs::create_directories(root_ / "config" / "objects");
     }
-    ~TempScene() { std::error_code ec; scene::fs::remove_all(root_, ec); }
-    TempScene(const TempScene&) = delete;
+    ~TempScene()
+    {
+        std::error_code ec;
+        scene::fs::remove_all(root_, ec);
+    }
+    TempScene(const TempScene&)            = delete;
     TempScene& operator=(const TempScene&) = delete;
 
     void manifest(const std::string& b) const { write(root_ / "config" / "scene.json", b); }
@@ -102,7 +106,7 @@ std::optional<Delta> find(const std::vector<Delta>& ds, const std::string& a)
     return std::nullopt;
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // latched pairs -- a plain registry lookup
@@ -129,7 +133,7 @@ TEST(Comparison, LatchedPairMeasuresTheDistanceBetweenClaims)
     EXPECT_NEAR(d.distance_mm, 3.0, 1e-9);
     EXPECT_NEAR(d.dx_mm, 3.0, 1e-9);
     EXPECT_NEAR(d.angle_deg, 0.0, 1e-9);
-    EXPECT_EQ(d.time_gap_s, 0.0);      // latched: no matching involved
+    EXPECT_EQ(d.time_gap_s, 0.0);   // latched: no matching involved
 }
 
 TEST(Comparison, LatchedPairReportsOrientationDisagreement)
@@ -142,7 +146,7 @@ TEST(Comparison, LatchedPairReportsOrientationDisagreement)
 
     const frames::Quat spun(Eigen::AngleAxisd(0.05, frames::Vec3::UnitZ()));
     reg.set(frames::make("rail_origin", "rotor_opti", frames::Vec3::Zero(),
-                          frames::Quat::Identity(), 1.0));
+                         frames::Quat::Identity(), 1.0));
     reg.set(frames::make("rail_origin", "rotor_expected", frames::Vec3::Zero(), spun, 1.0));
 
     const auto deltas = cmp.compute();
@@ -207,7 +211,7 @@ TEST(Comparison, ContinuousPairIsRefusedWhenNoSampleIsCloseEnough)
     Comparator cmp(s, reg, 0.020, 256);
 
     cmp.onPlacementUpdated("hand_expected", at("hand_expected", {0.900, 0, 0}, 1.000));
-    cmp.onPlacementUpdated("hand_opti", at("hand_opti", {1.400, 0, 0}, 1.500));  // 500 ms later
+    cmp.onPlacementUpdated("hand_opti", at("hand_opti", {1.400, 0, 0}, 1.500));   // 500 ms later
 
     auto d = find(cmp.compute(), "hand_opti");
     ASSERT_TRUE(d);
@@ -278,7 +282,7 @@ TEST(Comparison, ThreePlacementsProduceThreeDeltas)
     reg.set(at("r3", {0.002, 0, 0}, 1.0));
 
     const auto deltas = cmp.compute();
-    EXPECT_EQ(deltas.size(), 3u);      // adding a third system is config, not code
+    EXPECT_EQ(deltas.size(), 3u);   // adding a third system is config, not code
     for (const auto& d : deltas)
         EXPECT_TRUE(d.valid) << d.invalid_reason;
 }

@@ -19,10 +19,10 @@ namespace {
 // clocks can never pair.
 
 // Simulated circular motion (metres).
-constexpr double kPi            = 3.14159265358979323846;  // MSVC's <cmath> has no M_PI
-constexpr double kStubRadiusM   = 0.5;   // circle radius, metres
-constexpr double kStubHeightM   = 1.0;   // height above the cell base, metres
-constexpr double kStubPeriodSec = 8.0;   // one full lap
+constexpr double kPi            = 3.14159265358979323846;   // MSVC's <cmath> has no M_PI
+constexpr double kStubRadiusM   = 0.5;                      // circle radius, metres
+constexpr double kStubHeightM   = 1.0;                      // height above the cell base, metres
+constexpr double kStubPeriodSec = 8.0;                      // one full lap
 
 void generateStubPose(double t, PosePacket& msg)
 {
@@ -43,7 +43,7 @@ void generateStubPose(double t, PosePacket& msg)
     msg.set_frame_id("fanuc_base");
 }
 
-} // namespace
+}   // namespace
 
 void runStubLoop(int publishRateHz, middleware::EcalProtoPublisher<PosePacket>& pub)
 {
@@ -56,4 +56,4 @@ void runStubLoop(int publishRateHz, middleware::EcalProtoPublisher<PosePacket>& 
     }
 }
 
-} // namespace fanuc
+}   // namespace fanuc

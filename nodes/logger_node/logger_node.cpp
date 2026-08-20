@@ -31,14 +31,17 @@ std::string csvField(const std::string& raw)
     std::string out = "\"";
     for (const char c : raw)
     {
-        if (c == '"') out += "\"\"";
-        else if (c == '\n' || c == '\r') out += ' ';
-        else out += c;
+        if (c == '"')
+            out += "\"\"";
+        else if (c == '\n' || c == '\r')
+            out += ' ';
+        else
+            out += c;
     }
     return out + "\"";
 }
 
-} // namespace
+}   // namespace
 
 int main()
 {
@@ -63,14 +66,14 @@ int main()
     std::tm tmBuf{};
     localtime_s(&tmBuf, &now);
     std::strftime(stamp, sizeof(stamp), "%Y%m%d_%H%M%S", &tmBuf);
-    const auto csvPath = std::filesystem::path(outputDir)
-                         / ("comparisons_" + std::string(stamp) + ".csv");
+    const auto csvPath =
+        std::filesystem::path(outputDir) / ("comparisons_" + std::string(stamp) + ".csv");
 
     std::ofstream csv(csvPath);
     if (!csv.is_open())
     {
         std::fprintf(stderr, "[logger_node] FATAL: could not open %s for writing\n",
-                      csvPath.string().c_str());
+                     csvPath.string().c_str());
         return 1;
     }
 
@@ -100,51 +103,46 @@ int main()
            // readable from the file itself rather than only from the console.
            "phase\n";
 
-    std::mutex mtx;             // eCAL delivers callbacks from its own threads
+    std::mutex mtx;   // eCAL delivers callbacks from its own threads
     long long rowCount = 0;
-    JointStatePacket joints;    // latest, joined into each row
+    JointStatePacket joints;   // latest, joined into each row
     ScenePlacementsPacket placements;
 
     // Off until the frontend says otherwise. Defaulting to ON would mean a logger
     // started before the frontend recorded the setup phase as though it were the
     // run -- rows that look like validation data and are not.
-    bool logEnabled = false;
+    bool logEnabled   = false;
     std::string phase = "(no frontend)";
 
     middleware::EcalProtoSubscriber<SessionControlPacket> subSession(
-        "logger_node", topicSession,
-        [&](const SessionControlPacket& msg) {
+        "logger_node", topicSession, [&](const SessionControlPacket& msg) {
             std::scoped_lock lock(mtx);
             // Transitions are announced, because the boundary between "the run"
             // and "everything else" is the one thing a reader of the CSV cannot
             // reconstruct from the CSV.
             if (msg.log_enabled() != logEnabled)
                 std::printf("[logger_node] logging %s (phase: %s) after %lld rows\n",
-                            msg.log_enabled() ? "STARTED" : "STOPPED",
-                            msg.phase().c_str(), rowCount);
+                            msg.log_enabled() ? "STARTED" : "STOPPED", msg.phase().c_str(),
+                            rowCount);
             logEnabled = msg.log_enabled();
             phase      = msg.phase();
         });
 
-    middleware::EcalProtoSubscriber<JointStatePacket> subJoints(
-        "logger_node", topicJointState,
-        [&](const JointStatePacket& msg) {
-            std::scoped_lock lock(mtx);
-            joints = msg;
-        });
+    middleware::EcalProtoSubscriber<JointStatePacket> subJoints("logger_node", topicJointState,
+                                                                [&](const JointStatePacket& msg) {
+                                                                    std::scoped_lock lock(mtx);
+                                                                    joints = msg;
+                                                                });
 
     middleware::EcalProtoSubscriber<ScenePlacementsPacket> subPlacements(
-        "logger_node", topicPlacements,
-        [&](const ScenePlacementsPacket& msg) {
+        "logger_node", topicPlacements, [&](const ScenePlacementsPacket& msg) {
             std::scoped_lock lock(mtx);
             placements = msg;
         });
 
     // Comparisons drive row emission; the other two topics are joined in.
     middleware::EcalProtoSubscriber<ComparisonPacket> subComparisons(
-        "logger_node", topicComparisons,
-        [&](const ComparisonPacket& msg)
-        {
+        "logger_node", topicComparisons, [&](const ComparisonPacket& msg) {
             std::scoped_lock lock(mtx);
 
             // The gate. Deltas keep arriving throughout; only the run is written.
@@ -171,46 +169,31 @@ int main()
                 // Invalid deltas are logged too. A gap in the record is
                 // indistinguishable from a period that was never sampled,
                 // whereas a row carrying its own reason is diagnosable.
-                csv << msg.timestamp() << ","
-                    << csvField(d.object_id()) << ","
-                    << csvField(d.a()) << ","
-                    << csvField(d.b()) << ","
-                    << csvField(d.a_source()) << ","
-                    << csvField(d.b_source()) << ","
-                    << d.distance_mm() << ","
-                    << d.angle_deg() << ","
-                    << d.dx_mm() << "," << d.dy_mm() << "," << d.dz_mm() << ","
-                    << d.time_gap_s() << ","
-                    << d.valid() << ","
-                    << csvField(d.invalid_reason()) << ","
+                csv << msg.timestamp() << "," << csvField(d.object_id()) << "," << csvField(d.a())
+                    << "," << csvField(d.b()) << "," << csvField(d.a_source()) << ","
+                    << csvField(d.b_source()) << "," << d.distance_mm() << "," << d.angle_deg()
+                    << "," << d.dx_mm() << "," << d.dy_mm() << "," << d.dz_mm() << ","
+                    << d.time_gap_s() << "," << d.valid() << "," << csvField(d.invalid_reason())
+                    << ","
 
-                    << csvField(joints.arm()) << ","
-                    << joints.rail_position() << ","
-                    << jointAt(0) << "," << jointAt(1) << "," << jointAt(2) << ","
-                    << jointAt(3) << "," << jointAt(4) << "," << jointAt(5) << ","
-                    << joints.active_tool_frame() << ","
-                    << joints.valid() << ","
-                    << joints.timestamp() << ","
+                    << csvField(joints.arm()) << "," << joints.rail_position() << "," << jointAt(0)
+                    << "," << jointAt(1) << "," << jointAt(2) << "," << jointAt(3) << ","
+                    << jointAt(4) << "," << jointAt(5) << "," << joints.active_tool_frame() << ","
+                    << joints.valid() << "," << joints.timestamp() << ","
 
-                    << csvField(placements.anchor_frame()) << ","
-                    << anchor.valid() << ","
+                    << csvField(placements.anchor_frame()) << "," << anchor.valid() << ","
                     << anchor.pos_x() << "," << anchor.pos_y() << "," << anchor.pos_z() << ",";
 
                 for (const auto* side : {&poseFor(d.a()), &poseFor(d.b())})
-                    csv << side->latched() << ","
-                        << side->spread_mm() << ","
-                        << side->std_err_mm() << ","
-                        << side->samples_used() << ","
-                        << side->samples_rejected() << ",";
+                    csv << side->latched() << "," << side->spread_mm() << "," << side->std_err_mm()
+                        << "," << side->samples_used() << "," << side->samples_rejected() << ",";
 
-                csv << anchor.spread_mm() << "," << anchor.std_err_mm() << ","
-                    << d.review_gated() << ","
-                    << csvField(phase) << "\n";
+                csv << anchor.spread_mm() << "," << anchor.std_err_mm() << "," << d.review_gated()
+                    << "," << csvField(phase) << "\n";
                 ++rowCount;
             }
 
-            if (flushEveryNRows <= 0 || rowCount % flushEveryNRows == 0)
-                csv.flush();
+            if (flushEveryNRows <= 0 || rowCount % flushEveryNRows == 0) csv.flush();
         });
 
     std::printf("[logger_node] logging %s (joined with %s + %s) -> %s (flush every %d rows)\n",

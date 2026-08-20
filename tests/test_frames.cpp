@@ -35,7 +35,7 @@ void expectSameTransform(const Transform& a, const Transform& b)
     EXPECT_NEAR(magnitudeOf(compose(inverse(a), b)).angle_rad, 0.0, 1e-9);
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // direction discipline -- the bug class this file exists to prevent
@@ -56,8 +56,8 @@ TEST(Frames, ComposeRejectsMismatchedInnerFrames)
     const Transform T_a_b = sample("a", "b");
     const Transform T_b_c = sample("b", "c");
 
-    EXPECT_NO_THROW((void)compose(T_a_b, T_b_c));         // inner frames meet: b == b
-    EXPECT_THROW((void)compose(T_b_c, T_a_b), FrameError); // reversed: c != a
+    EXPECT_NO_THROW((void)compose(T_a_b, T_b_c));            // inner frames meet: b == b
+    EXPECT_THROW((void)compose(T_b_c, T_a_b), FrameError);   // reversed: c != a
 }
 
 TEST(Frames, ComposeProducesOuterFrames)
@@ -73,7 +73,7 @@ TEST(Frames, ComposeProducesOuterFrames)
 
 TEST(Frames, InverseRoundTripsToIdentity)
 {
-    const Transform t = sample("rail", "opti");
+    const Transform t     = sample("rail", "opti");
     const Transform round = compose(t, inverse(t));
 
     EXPECT_EQ(round.to, "rail");
@@ -102,7 +102,7 @@ TEST(Frames, MakeNormalizesQuaternion)
     // scales the point by 9 and every downstream distance is wrong.
     const Quat raw(3.0, 0.0, 0.0, 0.0);
     const Transform t = make("a", "b", Vec3::Zero(), raw);
-    const Point out = t.apply({"b", Vec3(1, 0, 0)});
+    const Point out   = t.apply({"b", Vec3(1, 0, 0)});
     EXPECT_NEAR(out.p.norm(), 1.0, kTol);
 }
 
@@ -247,7 +247,7 @@ TEST(Frames, QuaternionWxyzLayoutSurvivesRoundTrip)
 {
     // Guards the coeffs()-is-xyzw trap: if the layout were mixed up anywhere,
     // these components come back permuted.
-    const Quat q = convert::quatFromWxyz(0.5, 0.5, -0.5, 0.5);
+    const Quat q    = convert::quatFromWxyz(0.5, 0.5, -0.5, 0.5);
     const auto wxyz = convert::quatToWxyz(q);
     EXPECT_NEAR(wxyz[0], 0.5, kTol);
     EXPECT_NEAR(wxyz[1], 0.5, kTol);

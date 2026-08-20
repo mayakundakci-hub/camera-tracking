@@ -28,15 +28,15 @@ public:
 
 struct Point {
     FrameId frame;
-    Vec3    p{Vec3::Zero()};
+    Vec3 p{Vec3::Zero()};
 };
 
 struct Transform {
-    FrameId to;      // the frame this transform produces
-    FrameId from;    // the frame it consumes
-    Iso     iso{Iso::Identity()};   // to <- from. Eigen owns all arithmetic.
+    FrameId to;                 // the frame this transform produces
+    FrameId from;               // the frame it consumes
+    Iso iso{Iso::Identity()};   // to <- from. Eigen owns all arithmetic.
 
-    double  stamp{0.0};
+    double stamp{0.0};
 
     [[nodiscard]] Point apply(const Point& in) const
     {
@@ -53,28 +53,22 @@ struct Transform {
     [[nodiscard]] Quat rotation() const { return Quat(iso.rotation()); }
 };
 
-inline Transform identity(const FrameId& frame)
-{
-    return {frame, frame, Iso::Identity(), 0.0};
-}
+inline Transform identity(const FrameId& frame) { return {frame, frame, Iso::Identity(), 0.0}; }
 
-inline Transform make(FrameId to, FrameId from, const Vec3& translation_m,
-                      const Quat& rotation, double stamp = 0.0)
+inline Transform make(FrameId to, FrameId from, const Vec3& translation_m, const Quat& rotation,
+                      double stamp = 0.0)
 {
     if (rotation.norm() < 1e-9)
         throw FrameError("make: T_" + to + "_" + from + " was given a zero-length quaternion");
 
-    Iso iso = Iso::Identity();
+    Iso iso           = Iso::Identity();
     iso.linear()      = rotation.normalized().toRotationMatrix();
     iso.translation() = translation_m;
     return {std::move(to), std::move(from), iso, stamp};
 }
 
 // T_a_b  ->  T_b_a
-inline Transform inverse(const Transform& t)
-{
-    return {t.from, t.to, t.iso.inverse(), t.stamp};
-}
+inline Transform inverse(const Transform& t) { return {t.from, t.to, t.iso.inverse(), t.stamp}; }
 
 inline double combineStamps(double a, double b)
 {
@@ -110,7 +104,6 @@ inline Magnitude magnitudeOf(const Transform& t)
 
 class Registry {
 public:
-
     void set(const Transform& t)
     {
         if (t.to == t.from)
@@ -154,8 +147,7 @@ public:
     [[nodiscard]] std::optional<Transform> lookup(const FrameId& to, const FrameId& from) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (to == from)
-            return identity(to);
+        if (to == from) return identity(to);
 
         // Breadth-first from `from`; reached[f] holds T_f_from.
         std::unordered_map<FrameId, Transform> reached;
@@ -166,23 +158,30 @@ public:
         {
             const FrameId cur = queue.front();
             queue.pop_front();
-            const Transform T_cur_from = reached.at(cur);  // copied: emplace below may rehash
+            const Transform T_cur_from = reached.at(cur);   // copied: emplace below may rehash
 
             for (const auto& e : edges_)
             {
                 // Every stored edge is usable in both directions.
-                FrameId   next;
+                FrameId next;
                 Transform T_next_cur;
-                if (e.from == cur)    { next = e.to;   T_next_cur = e; }
-                else if (e.to == cur) { next = e.from; T_next_cur = inverse(e); }
-                else                  continue;
-
-                if (reached.count(next))
+                if (e.from == cur)
+                {
+                    next       = e.to;
+                    T_next_cur = e;
+                }
+                else if (e.to == cur)
+                {
+                    next       = e.from;
+                    T_next_cur = inverse(e);
+                }
+                else
                     continue;
 
+                if (reached.count(next)) continue;
+
                 Transform T_next_from = compose(T_next_cur, T_cur_from);
-                if (next == to)
-                    return T_next_from;
+                if (next == to) return T_next_from;
 
                 reached.emplace(next, std::move(T_next_from));
                 queue.push_back(next);
@@ -195,8 +194,7 @@ public:
     // manifest entry into a five-second diagnosis.
     [[nodiscard]] Transform require(const FrameId& to, const FrameId& from) const
     {
-        if (auto t = lookup(to, from))
-            return *t;
+        if (auto t = lookup(to, from)) return *t;
 
         std::string known;
         for (const auto& f : knownFrames())
@@ -214,7 +212,8 @@ public:
             for (const FrameId& f : {e.to, e.from})
             {
                 bool seen = false;
-                for (const auto& o : out) seen = seen || (o == f);
+                for (const auto& o : out)
+                    seen = seen || (o == f);
                 if (!seen) out.push_back(f);
             }
         }
@@ -234,7 +233,7 @@ public:
     }
 
 private:
-    mutable std::mutex     mutex_;
+    mutable std::mutex mutex_;
     std::vector<Transform> edges_;
 };
 
@@ -243,8 +242,8 @@ namespace convert {
 
 inline constexpr double kMmPerM = 1000.0;
 
-inline double mmToM(double mm)   { return mm / kMmPerM; }
-inline double mToMm(double m)    { return m * kMmPerM; }
+inline double mmToM(double mm) { return mm / kMmPerM; }
+inline double mToMm(double m) { return m * kMmPerM; }
 inline double degToRad(double d) { return d * (3.14159265358979323846 / 180.0); }
 inline double radToDeg(double r) { return r * (180.0 / 3.14159265358979323846); }
 
@@ -276,5 +275,5 @@ inline Vec3 vecFromMm(double x_mm, double y_mm, double z_mm)
     return {mmToM(x_mm), mmToM(y_mm), mmToM(z_mm)};
 }
 
-}  // namespace convert
-}  // namespace frames
+}   // namespace convert
+}   // namespace frames

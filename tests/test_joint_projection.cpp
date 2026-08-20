@@ -110,7 +110,7 @@ double thetaViaMatrixForm(const Eigen::Matrix3d& r, const Vec3& axis)
     return std::atan2(b, a);
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // round trip -- a pose built at theta must give theta back
@@ -161,7 +161,7 @@ TEST(JointProjection, ProjectionIsOptimal)
     // it perturbs off the manifold, then checks by exhaustive scan that no other
     // angle explains the measurement better.
     const RevoluteJoint joint = awkward();
-    const Vec3 axis = joint.axis.normalized();
+    const Vec3 axis           = joint.axis.normalized();
 
     std::mt19937 rng(20260810);
     std::uniform_real_distribution<double> angle(-0.35, 0.35);
@@ -176,9 +176,9 @@ TEST(JointProjection, ProjectionIsOptimal)
         const Vec3 wobbleAxis = Vec3(comp(rng), comp(rng), comp(rng)).normalized();
         const Quat wobble(Eigen::AngleAxisd(angle(rng), wobbleAxis));
 
-        const Transform clean    = onManifold(joint, thetaTrue, "a", "b");
-        const Transform measured = frames::make("a", "b", clean.translation(),
-                                                clean.rotation() * wobble);
+        const Transform clean = onManifold(joint, thetaTrue, "a", "b");
+        const Transform measured =
+            frames::make("a", "b", clean.translation(), clean.rotation() * wobble);
 
         const Projection p = project(measured, joint, "b_proj");
         ASSERT_FALSE(p.degenerate);
@@ -226,7 +226,7 @@ TEST(JointProjection, QuaternionAndMatrixFormsAgree)
 
     for (int trial = 0; trial < 200; ++trial)
     {
-        const Quat q = Quat(comp(rng), comp(rng), comp(rng), comp(rng)).normalized();
+        const Quat q             = Quat(comp(rng), comp(rng), comp(rng), comp(rng)).normalized();
         const Transform measured = frames::make("a", "b", Vec3::Zero(), q);
 
         const Projection p = project(measured, joint, "b_proj");
@@ -242,14 +242,14 @@ TEST(JointProjection, QuaternionDoubleCoverDoesNotShiftTheta)
     // atan2 branch flips and theta moves by a full turn, so which representative
     // the tracker happened to send would change the reported angle.
     const RevoluteJoint joint = j9();
-    const Transform clean = onManifold(joint, 0.62, "j8", "j9");
+    const Transform clean     = onManifold(joint, 0.62, "j8", "j9");
 
     const Quat q = clean.rotation();
     const Quat negated(-q.w(), -q.x(), -q.y(), -q.z());
 
     const Projection a = project(clean, joint, "j9_proj");
-    const Projection b = project(frames::make("j8", "j9", clean.translation(), negated),
-                                 joint, "j9_proj");
+    const Projection b =
+        project(frames::make("j8", "j9", clean.translation(), negated), joint, "j9_proj");
 
     EXPECT_NEAR(a.theta_rad, b.theta_rad, kTight);
     EXPECT_NEAR(b.theta_rad, 0.62, kTight);
@@ -265,12 +265,11 @@ TEST(JointProjection, ErrorAboutTheJointAxisIsAbsorbedNotReported)
     // theta, not in the residual -- otherwise the residual would grow simply
     // because the hand was being used.
     const RevoluteJoint joint = j9();
-    const Transform clean = onManifold(joint, 0.4, "j8", "j9");
+    const Transform clean     = onManifold(joint, 0.4, "j8", "j9");
 
     const Quat extra(Eigen::AngleAxisd(0.05, Vec3::UnitZ()));
     const Projection p = project(
-        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra),
-        joint, "j9_proj");
+        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra), joint, "j9_proj");
 
     EXPECT_NEAR(p.theta_rad, 0.45, kLoose);
     EXPECT_NEAR(p.residual_rad, 0.0, kLoose);
@@ -281,17 +280,16 @@ TEST(JointProjection, ErrorPerpendicularToTheAxisIsReportedInFull)
     // A rotation the joint cannot produce must survive into residual_rad at its
     // full size -- this is the rigid-body identification error, isolated.
     const RevoluteJoint joint = j9();
-    const Transform clean = onManifold(joint, 0.4, "j8", "j9");
+    const Transform clean     = onManifold(joint, 0.4, "j8", "j9");
 
     const double tilt = frames::convert::degToRad(0.5);
     const Quat extra(Eigen::AngleAxisd(tilt, Vec3::UnitX()));   // perpendicular to Z
 
     const Projection p = project(
-        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra),
-        joint, "j9_proj");
+        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra), joint, "j9_proj");
 
-    EXPECT_NEAR(p.theta_rad, 0.4, kLoose);          // theta is untouched
-    EXPECT_NEAR(p.residual_rad, tilt, kLoose);      // and the tilt is reported whole
+    EXPECT_NEAR(p.theta_rad, 0.4, kLoose);       // theta is untouched
+    EXPECT_NEAR(p.residual_rad, tilt, kLoose);   // and the tilt is reported whole
 }
 
 TEST(JointProjection, ThetaIsIndependentOfPosition)
@@ -301,16 +299,15 @@ TEST(JointProjection, ThetaIsIndependentOfPosition)
     // Move the measurement 5 mm and theta must not budge by one bit, while
     // residual_m picks up exactly the 5 mm.
     const RevoluteJoint joint = j9();
-    const Transform clean = onManifold(joint, 0.77, "j8", "j9");
+    const Transform clean     = onManifold(joint, 0.77, "j8", "j9");
 
-    const Vec3 shift(0.003, -0.004, 0.0);           // 5 mm
-    const Transform moved =
-        frames::make("j8", "j9", clean.translation() + shift, clean.rotation());
+    const Vec3 shift(0.003, -0.004, 0.0);   // 5 mm
+    const Transform moved = frames::make("j8", "j9", clean.translation() + shift, clean.rotation());
 
     const Projection a = project(clean, joint, "j9_proj");
     const Projection b = project(moved, joint, "j9_proj");
 
-    EXPECT_EQ(a.theta_rad, b.theta_rad);            // bit-identical, not merely close
+    EXPECT_EQ(a.theta_rad, b.theta_rad);   // bit-identical, not merely close
     EXPECT_NEAR(a.residual_m, 0.0, kTight);
     EXPECT_NEAR(b.residual_m, 0.005, kLoose);
 }
@@ -345,7 +342,7 @@ TEST(JointProjection, OffAxisOriginOrbitsRatherThanHoldingStill)
     const RevoluteJoint joint = offAxis();
     EXPECT_NEAR(joint.radius_m(), 0.120, kLoose);
 
-    const Transform atZero = joint.at("j8", "j9", 0.0);
+    const Transform atZero   = joint.at("j8", "j9", 0.0);
     const Transform atNinety = joint.at("j8", "j9", kPi / 2.0);
 
     const double travelled = (atNinety.translation() - atZero.translation()).norm();
@@ -378,7 +375,7 @@ TEST(JointProjection, GeometryChecksAreIndependentOfTheAngle)
     // that same error at every angle. If either moved with theta it could not
     // distinguish a misplaced axis from the joint simply being used.
     const RevoluteJoint joint = offAxis();
-    const Vec3 axis = joint.axis;
+    const Vec3 axis           = joint.axis;
 
     for (const double theta : {-1.5, -0.9, -0.2, 0.0, 0.4, 1.1, 1.5})
     {
@@ -386,11 +383,10 @@ TEST(JointProjection, GeometryChecksAreIndependentOfTheAngle)
 
         // Push 4 mm further from the axis and 3 mm along it -- in the frame the
         // errors are defined in, so the expected values are exact.
-        const Vec3 d = clean.translation() - joint.axis_point_m;
-        const Vec3 radialDir = (d - d.dot(axis) * axis).normalized();
+        const Vec3 d             = clean.translation() - joint.axis_point_m;
+        const Vec3 radialDir     = (d - d.dot(axis) * axis).normalized();
         const Transform measured = frames::make(
-            "j8", "j9", clean.translation() + 0.004 * radialDir + 0.003 * axis,
-            clean.rotation());
+            "j8", "j9", clean.translation() + 0.004 * radialDir + 0.003 * axis, clean.rotation());
 
         const Projection p = project(measured, joint, "j9_proj");
 
@@ -407,20 +403,20 @@ TEST(JointProjection, RadialAndAxialErrorsAreDistinguishable)
     // one -- so a purely radial error must not leak into the axial figure or
     // vice versa. A single blended residual would lose this.
     const RevoluteJoint joint = offAxis();
-    const Transform clean = onManifold(joint, 0.5, "j8", "j9");
+    const Transform clean     = onManifold(joint, 0.5, "j8", "j9");
 
-    const Vec3 d = clean.translation() - joint.axis_point_m;
+    const Vec3 d         = clean.translation() - joint.axis_point_m;
     const Vec3 radialDir = (d - d.dot(joint.axis) * joint.axis).normalized();
 
-    const Projection pureRadial = project(
-        frames::make("j8", "j9", clean.translation() + 0.007 * radialDir, clean.rotation()),
-        joint, "j9_proj");
+    const Projection pureRadial =
+        project(frames::make("j8", "j9", clean.translation() + 0.007 * radialDir, clean.rotation()),
+                joint, "j9_proj");
     EXPECT_NEAR(pureRadial.radial_error_m, 0.007, kLoose);
     EXPECT_NEAR(pureRadial.axial_error_m, 0.0, kLoose);
 
     const Projection pureAxial = project(
-        frames::make("j8", "j9", clean.translation() + 0.007 * joint.axis, clean.rotation()),
-        joint, "j9_proj");
+        frames::make("j8", "j9", clean.translation() + 0.007 * joint.axis, clean.rotation()), joint,
+        "j9_proj");
     EXPECT_NEAR(pureAxial.radial_error_m, 0.0, kLoose);
     EXPECT_NEAR(pureAxial.axial_error_m, 0.007, kLoose);
 }
@@ -434,9 +430,9 @@ TEST(JointProjection, AnyPointOnTheAxisGivesTheSameAnswer)
     RevoluteJoint b = offAxis();
     b.axis_point_m += 0.35 * b.axis;   // 350 mm along the axis
 
-    const Transform measured = frames::make(
-        "j8", "j9", Vec3(0.131, 0.244, 0.051),
-        Quat(Eigen::AngleAxisd(0.42, Vec3(0.1, -0.2, 0.97).normalized())));
+    const Transform measured =
+        frames::make("j8", "j9", Vec3(0.131, 0.244, 0.051),
+                     Quat(Eigen::AngleAxisd(0.42, Vec3(0.1, -0.2, 0.97).normalized())));
 
     const Projection pa = project(measured, a, "j9_proj");
     const Projection pb = project(measured, b, "j9_proj");
@@ -453,14 +449,13 @@ TEST(JointProjection, AMisplacedAxisShowsUpAsRadialError)
     // really is. Build poses from the TRUE joint, project with the WRONG one,
     // and confirm the error surfaces rather than hiding in theta.
     const RevoluteJoint truth = offAxis();
-    RevoluteJoint believed = offAxis();
+    RevoluteJoint believed    = offAxis();
     believed.axis_point_m += Vec3(0.008, 0.0, 0.0);
 
     bool sawRadial = false;
     for (const double theta : {-1.2, -0.4, 0.6, 1.3})
     {
-        const Projection p =
-            project(onManifold(truth, theta, "j8", "j9"), believed, "j9_proj");
+        const Projection p = project(onManifold(truth, theta, "j8", "j9"), believed, "j9_proj");
         ASSERT_FALSE(p.degenerate);
         if (std::fabs(p.radial_error_m) > 1e-4) sawRadial = true;
     }
@@ -553,10 +548,9 @@ TEST(JointProjection, CentredLimitsAgreeWithNaiveClamping)
     // "simplifies" the wrap-aware version back out on the evidence of J8/J9/J10.
     for (const double theta : {-3.1, -1.6, -1.5, 0.0, 1.5, 1.6, 3.1})
     {
-        bool clamped = false;
+        bool clamped     = false;
         const double got = clampToLimits(theta, -1.5707, 1.5707, clamped);
-        EXPECT_NEAR(got, std::max(-1.5707, std::min(1.5707, theta)), kLoose)
-            << "theta = " << theta;
+        EXPECT_NEAR(got, std::max(-1.5707, std::min(1.5707, theta)), kLoose) << "theta = " << theta;
     }
 }
 
@@ -590,15 +584,14 @@ TEST(JointProjection, ClampedResidualIsMeasuredAgainstWhatIsPublished)
     // the limit -- not the discarded unclamped pose, which nothing downstream
     // ever sees.
     RevoluteJoint joint = j9();
-    joint.lower_rad = -0.2;
-    joint.upper_rad = 0.2;
+    joint.lower_rad     = -0.2;
+    joint.upper_rad     = 0.2;
 
     const Transform clean = onManifold(joint, 0.0, "j8", "j9");
     const Quat extra(Eigen::AngleAxisd(0.9, Vec3::UnitZ()));
 
     const Projection p = project(
-        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra),
-        joint, "j9_proj");
+        frames::make("j8", "j9", clean.translation(), clean.rotation() * extra), joint, "j9_proj");
 
     EXPECT_TRUE(p.clamped);
     EXPECT_NEAR(p.theta_raw_rad, 0.9, kLoose);
@@ -614,7 +607,7 @@ TEST(JointProjection, WrapToNearPicksTheRightBranch)
 {
     EXPECT_NEAR(wrapToNear(0.17, 6.28), 0.17 + kTwoPi, kLoose);
     EXPECT_NEAR(wrapToNear(3.2, 0.0), 3.2 - kTwoPi, kLoose);
-    EXPECT_NEAR(wrapToNear(0.5, 0.4), 0.5, kLoose);        // already nearest
+    EXPECT_NEAR(wrapToNear(0.5, 0.4), 0.5, kLoose);   // already nearest
     EXPECT_NEAR(wrapToNear(-3.1, 3.1), -3.1 + kTwoPi, kLoose);
 }
 
@@ -639,7 +632,7 @@ TEST(JointProjection, CorrectedPoseCarriesItsOwnFrameName)
     // for the measurement. Sharing a frame name would let one silently overwrite
     // the other, and the residual between them is the feature's output.
     const RevoluteJoint joint = j9();
-    const Projection p = project(onManifold(joint, 0.3, "j8", "j9"), joint, "j9_proj");
+    const Projection p        = project(onManifold(joint, 0.3, "j8", "j9"), joint, "j9_proj");
 
     EXPECT_EQ(p.corrected.to, "j8");
     EXPECT_EQ(p.corrected.from, "j9_proj");
@@ -648,7 +641,7 @@ TEST(JointProjection, CorrectedPoseCarriesItsOwnFrameName)
 TEST(JointProjection, RejectsAnUnnamedOrCollidingCorrectedFrame)
 {
     const RevoluteJoint joint = j9();
-    const Transform measured = onManifold(joint, 0.3, "j8", "j9");
+    const Transform measured  = onManifold(joint, 0.3, "j8", "j9");
 
     EXPECT_THROW((void)project(measured, joint, ""), frames::FrameError);
     EXPECT_THROW((void)project(measured, joint, "j8"), frames::FrameError);
@@ -657,7 +650,7 @@ TEST(JointProjection, RejectsAnUnnamedOrCollidingCorrectedFrame)
 TEST(JointProjection, RejectsAZeroLengthAxis)
 {
     RevoluteJoint joint = j9();
-    joint.axis = Vec3::Zero();
+    joint.axis          = Vec3::Zero();
 
     EXPECT_THROW((void)joint.at("a", "b", 0.0), frames::FrameError);
 }
@@ -665,7 +658,7 @@ TEST(JointProjection, RejectsAZeroLengthAxis)
 TEST(JointProjection, NormalisesANonUnitAxis)
 {
     RevoluteJoint joint = j9();
-    joint.axis = Vec3(0.0, 0.0, 4.0);   // right direction, wrong length
+    joint.axis          = Vec3(0.0, 0.0, 4.0);   // right direction, wrong length
 
     const Projection p = project(onManifold(j9(), 0.55, "j8", "j9"), joint, "j9_proj");
     EXPECT_NEAR(p.theta_rad, 0.55, kLoose);
@@ -674,8 +667,8 @@ TEST(JointProjection, NormalisesANonUnitAxis)
 TEST(JointProjection, CommonFrameRejectsPosesInDifferentFrames)
 {
     const RevoluteJoint joint = j9();
-    const Transform a = parentPose("mocap", "j8");
-    const Transform b = parentPose("some_other_world", "j9");
+    const Transform a         = parentPose("mocap", "j8");
+    const Transform b         = parentPose("some_other_world", "j9");
 
     EXPECT_THROW((void)projectInCommonFrame(a, b, joint, "j9_proj"), frames::FrameError);
 }
@@ -683,7 +676,7 @@ TEST(JointProjection, CommonFrameRejectsPosesInDifferentFrames)
 TEST(JointProjection, CommonFrameRejectsAReversedInput)
 {
     const RevoluteJoint joint = j9();
-    const Transform a = parentPose("mocap", "j8");
+    const Transform a         = parentPose("mocap", "j8");
 
     // Same `to` frame, but this one is inverted -- the classic reversed-transform
     // mistake. compose() inside must catch it.
@@ -700,10 +693,9 @@ TEST(JointProjection, CommonFrameNeedsNoAnchor)
     // theta depends only on the RELATIVE rotation, so the same answer comes out
     // whatever frame the two bodies are measured in. This is what lets the
     // projection run before the scene anchor has latched.
-    const RevoluteJoint joint = j9();
+    const RevoluteJoint joint  = j9();
     const Transform T_mocap_j8 = parentPose("mocap", "j8", 12.5);
-    const Transform T_mocap_j9 =
-        frames::compose(T_mocap_j8, onManifold(joint, 0.83, "j8", "j9"));
+    const Transform T_mocap_j9 = frames::compose(T_mocap_j8, onManifold(joint, 0.83, "j8", "j9"));
 
     const Projection p = projectInCommonFrame(T_mocap_j8, T_mocap_j9, joint, "j9_proj");
 
@@ -717,19 +709,17 @@ TEST(JointProjection, IsInvariantToTheMocapWorldOrigin)
     // Motive can be recalibrated between sessions, moving its world origin by an
     // unknown M. Both bodies move with it, so M cancels -- the same argument
     // object_placement.hpp makes for the anchor, restated for angles.
-    const RevoluteJoint joint = j9();
+    const RevoluteJoint joint  = j9();
     const Transform T_mocap_j8 = parentPose("mocap", "j8");
-    const Transform T_mocap_j9 =
-        frames::compose(T_mocap_j8, onManifold(joint, -1.02, "j8", "j9"));
+    const Transform T_mocap_j9 = frames::compose(T_mocap_j8, onManifold(joint, -1.02, "j8", "j9"));
 
-    const Transform M = frames::make(
-        "mocap2", "mocap", Vec3(-7.3, 2.9, 0.44),
-        Quat(Eigen::AngleAxisd(2.4, Vec3(0.5, 0.5, 0.7071).normalized())));
+    const Transform M =
+        frames::make("mocap2", "mocap", Vec3(-7.3, 2.9, 0.44),
+                     Quat(Eigen::AngleAxisd(2.4, Vec3(0.5, 0.5, 0.7071).normalized())));
 
     const Projection before = projectInCommonFrame(T_mocap_j8, T_mocap_j9, joint, "j9_proj");
-    const Projection after  = projectInCommonFrame(frames::compose(M, T_mocap_j8),
-                                                   frames::compose(M, T_mocap_j9),
-                                                   joint, "j9_proj");
+    const Projection after = projectInCommonFrame(frames::compose(M, T_mocap_j8),
+                                                  frames::compose(M, T_mocap_j9), joint, "j9_proj");
 
     EXPECT_NEAR(before.theta_rad, after.theta_rad, kLoose);
     EXPECT_NEAR(before.residual_m, after.residual_m, kLoose);
@@ -743,8 +733,8 @@ TEST(JointProjection, RecoversBothAnglesOfTheRealTwoJointChain)
     // the J9 measurement.
     const RevoluteJoint jointA = j9();
     const RevoluteJoint jointB = j10();
-    constexpr double kTheta9  = 0.61;
-    constexpr double kTheta10 = -2.35;
+    constexpr double kTheta9   = 0.61;
+    constexpr double kTheta10  = -2.35;
 
     const Transform T_mocap_j8 = parentPose("mocap", "j8", 3.5);
     const Transform T_mocap_j9 =
@@ -757,8 +747,7 @@ TEST(JointProjection, RecoversBothAnglesOfTheRealTwoJointChain)
     EXPECT_NEAR(p9.theta_rad, kTheta9, kLoose);
 
     const Transform T_mocap_j9proj = frames::compose(T_mocap_j8, p9.corrected);
-    const Projection p10 =
-        projectInCommonFrame(T_mocap_j9proj, T_mocap_j10, jointB, "j10_proj");
+    const Projection p10 = projectInCommonFrame(T_mocap_j9proj, T_mocap_j10, jointB, "j10_proj");
 
     ASSERT_FALSE(p10.degenerate);
     EXPECT_NEAR(p10.theta_rad, kTheta10, kLoose);
@@ -775,7 +764,8 @@ TEST(JointProjection, StampTravelsWithTheCorrectedPose)
     // Staleness has to survive the projection, because a corrected pose built
     // from an old measurement is exactly as old as that measurement.
     const RevoluteJoint joint = j9();
-    const Transform measured = frames::make("j8", "j9", joint.zero_origin_m, Quat::Identity(), 42.0);
+    const Transform measured =
+        frames::make("j8", "j9", joint.zero_origin_m, Quat::Identity(), 42.0);
 
     EXPECT_EQ(project(measured, joint, "j9_proj").corrected.stamp, 42.0);
 }
@@ -800,22 +790,22 @@ namespace {
 RevoluteJoint turnedAboutItsAxis(const RevoluteJoint& truth, double yaw)
 {
     const Eigen::AngleAxisd Y(yaw, truth.axis.normalized());
-    RevoluteJoint out   = truth;
-    out.zero_origin_m   = Y.inverse() * truth.zero_origin_m;
-    out.axis_point_m    = Y.inverse() * truth.axis_point_m;
+    RevoluteJoint out = truth;
+    out.zero_origin_m = Y.inverse() * truth.zero_origin_m;
+    out.axis_point_m  = Y.inverse() * truth.axis_point_m;
     return out;
 }
 
-}  // namespace
+}   // namespace
 
 TEST(JointProjection, RecoversTheYawTheConfigOwes)
 {
-    const RevoluteJoint truth = offAxis();
-    constexpr double kYaw = 0.6;                      // ~34 degrees of unknown turn
+    const RevoluteJoint truth        = offAxis();
+    constexpr double kYaw            = 0.6;   // ~34 degrees of unknown turn
     const RevoluteJoint asConfigured = turnedAboutItsAxis(truth, kYaw);
 
     // A real measurement, generated from the TRUE geometry.
-    const double theta = 0.4;
+    const double theta       = 0.4;
     const Transform measured = truth.at("parent", "child", theta);
 
     const Projection p = project(measured, asConfigured, "child");
@@ -839,8 +829,8 @@ TEST(JointProjection, TheSameYawComesBackAtEveryJointAngle)
     // with the joint's own rotation, so it factors out of the model and does not
     // depend on where the joint happens to be sitting. Without this you could
     // not tell a mis-set config from a moving joint.
-    const RevoluteJoint truth = offAxis();
-    constexpr double kYaw = -0.9;
+    const RevoluteJoint truth        = offAxis();
+    constexpr double kYaw            = -0.9;
     const RevoluteJoint asConfigured = turnedAboutItsAxis(truth, kYaw);
 
     for (double theta : {-1.4, -0.7, -0.05, 0.0, 0.3, 1.1, 1.5})
@@ -857,10 +847,10 @@ TEST(JointProjection, ApplyingTheYawClosesTheGeometry)
     // collapses to nothing. That is the whole commissioning loop -- run it, read
     // the number, paste it back.
     const RevoluteJoint truth = offAxis();
-    constexpr double kYaw = 1.25;
-    RevoluteJoint cfg = turnedAboutItsAxis(truth, kYaw);
+    constexpr double kYaw     = 1.25;
+    RevoluteJoint cfg         = turnedAboutItsAxis(truth, kYaw);
 
-    const double theta = -0.55;
+    const double theta       = -0.55;
     const Transform measured = truth.at("parent", "child", theta);
 
     const double recovered = project(measured, cfg, "child").yaw_to_align_rad;
@@ -905,7 +895,7 @@ TEST(JointProjection, YawStaysObservableForABodyOnItsOwnHinge)
     // -- and the yaw is still fully recoverable, because what turns is its offset
     // from the PARENT's origin, not its offset from the hinge.
     const RevoluteJoint truth = j9();
-    constexpr double kYaw = 0.42;
+    constexpr double kYaw     = 0.42;
 
     const Projection p =
         project(truth.at("parent", "child", 0.2), turnedAboutItsAxis(truth, kYaw), "child");

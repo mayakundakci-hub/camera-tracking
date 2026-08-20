@@ -90,6 +90,25 @@ directly instead:
 ctest --test-dir out/build/windows-msvc-debug-local -C Debug --output-on-failure
 ```
 
+### Lint
+
+```bash
+python scripts/lint.py            # config checks + clang-format, report only
+python scripts/lint.py --changed  # C++ scope = what you touched vs HEAD
+python scripts/lint.py --fix      # rewrite those files in place
+python scripts/lint.py --tidy     # add clang-tidy, against a configured preset
+python scripts/lint.py --qml      # add qmllint, via Qt's generated all_qmllint target
+```
+
+Four checks behind one entry point. **Config** always runs and needs no tools: every JSON in
+the repo parses, and every `config/scene*.json` goes through `check_scene.py`. **clang-format**
+uses [`.clang-format`](.clang-format), calibrated to the code already here — 4-space, 100
+columns, Allman braces, and `SortIncludes: Never` because the include order in
+`backend/src/main.cpp` is deliberate. **clang-tidy** uses [`.clang-tidy`](.clang-tidy) and the
+`compile_commands.json` of the most recently configured preset; its `HeaderFilterRegex` is what
+keeps the report to this project's own headers rather than all of Qt, eCAL and Eigen.
+**qmllint** is Qt's, driven through the target `qt_add_qml_module` already generates.
+
 ## Demo: the renderer with no hardware
 
 `config/scene_demo.json` is a scene that needs no Motive, no cameras and no robot bridge. Use it
@@ -114,8 +133,8 @@ Two keys in `config.json` — the manifest path, and the flag that lets the back
 Motive:
 
 ```jsonc
-"scene":     { "manifest": "config/scene_demo.json" },   // was config/scene.json
-"optitrack": { "required": false }                        // was true
+"scene":     { "manifest": "config/scene_demo.json" }, 
+"optitrack": { "required": false }                       
 ```
 
 Leave `fanuc.stub_enabled` at `true`; it is what publishes `pose_fanuc`. Then check the manifest
@@ -168,9 +187,6 @@ refusing to start, and a scene with no camera data looks a lot like a scene with
 
    <img src="assets/motive_rigid_body_pane.png" width="60%">
 
-   *Each triad is one body's origin — its pivot. The three sitting together are the hand
-   plates; the two on their own are the rail.*
-
 3. **Check the Assets pane.** Every body defined and enabled, and each one's mean marker-fit
    error small before you trust it — that error is what `optitrack.max_mean_error_mm` in
    `config.json` screens against per-frame.
@@ -188,8 +204,10 @@ Bolt each cluster to its object, define the body in Motive, and put its pivot on
 
 ### Running the software
 
-Launch **`cameratracking.exe`** — never the three executables (`backend`, `logger_node`,
-`frontend`) by hand. It starts all three under a Windows job object and guarantees none can
+Launch **`cameratracking.exe`** 
+
+It starts all three three executables (`backend`, `logger_node`,
+`frontend`) under a Windows job object and guarantees none can
 outlive the session, including if the launcher itself is killed.
 
 `optitrack.required` in `config.json` controls whether the backend refuses to start without a
@@ -373,12 +391,5 @@ the Munera (`mulib`/`ludus`) dependency, and known traps in the build.
 - **Robot bridge (blocked)** — nothing yet publishes `robot/joint_state`. Until it does, every
   `expected_pose` / `joint_state` placement has no input, and the controller side of every
   comparison stays dark.
-- **`rail.json`** — the two-mount construction is filled in and in the manifest, but the anchor
-  has never been checked against the rig: `calibrated.rms_mm` is still `-1.0`. Two things to
-  settle on the next run — the `_note`'s 1651 mm baseline against the 1657 mm implied by
-  `mount_a`/`mount_b`, and which physical plate is `inputs[0]` (that note reads as if the −Y
-  body were `mount_a`, while `mount_a` is the +Y point).
-- **`rotor.json`** — in the manifest with both clamp bodies and both mount points, unverified on
-  the rig. The clamp standoffs are what nothing checks: get both wrong by the same amount and
-  the rotor slides along its own axis silently.
+- **`rail.json`** — validate that the origin is correct
 - Fix the hand mount CAD offset before printing (gated on choosing a canonical UTOOL).

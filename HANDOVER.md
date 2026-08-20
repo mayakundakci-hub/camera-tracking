@@ -23,7 +23,7 @@ them*. The rotor and the hand are the first two instances, not special cases.
 
 ## 1. What I built
 
-### camera-tracking — effectively all of it
+### camera-tracking
 
 
 #### The measurement core — `nodes/common/`

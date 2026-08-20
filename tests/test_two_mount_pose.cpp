@@ -53,7 +53,7 @@ Transform partTruth()
 // A rig is: the CAD the config would carry, the truth it is being asked to
 // recover, and the two body poses Motive would report.
 struct Rig {
-    Geometry  geometry;
+    Geometry geometry;
     Transform truth;
     Transform a;
     Transform b;
@@ -62,8 +62,8 @@ struct Rig {
 // Places two bodies on a part at the given CAD points, each oriented so that its
 // OWN +Z points along `normalInPart`, plus an arbitrary spin about that -- which
 // is the part of a Motive body's orientation nobody controls.
-Rig rig(const Vec3& mountA, const Vec3& mountB, const Vec3& normalInPart,
-        double spinA = 0.0, double spinB = 0.0)
+Rig rig(const Vec3& mountA, const Vec3& mountB, const Vec3& normalInPart, double spinA = 0.0,
+        double spinB = 0.0)
 {
     Rig r;
     r.geometry.normal_axis    = Vec3::UnitZ();
@@ -73,8 +73,7 @@ Rig rig(const Vec3& mountA, const Vec3& mountB, const Vec3& normalInPart,
     r.truth                   = partTruth();
 
     // Body +Z onto normalInPart, then spin about it.
-    const Quat align =
-        Quat::FromTwoVectors(Vec3::UnitZ(), normalInPart.normalized());
+    const Quat align   = Quat::FromTwoVectors(Vec3::UnitZ(), normalInPart.normalized());
     const auto bodyRot = [&](double spin) {
         return Quat(Eigen::AngleAxisd(spin, normalInPart.normalized())) * align;
     };
@@ -91,9 +90,8 @@ Rig rig(const Vec3& mountA, const Vec3& mountB, const Vec3& normalInPart,
 Rig rotorRig(double phi = kPi / 2.0, double spinA = 0.0, double spinB = 0.0)
 {
     constexpr double r = 0.7, faceX = 1.83;
-    return rig({faceX, 0.0, r},
-               {faceX, -r * std::sin(phi), r * std::cos(phi)},
-               Vec3::UnitX(), spinA, spinB);
+    return rig({faceX, 0.0, r}, {faceX, -r * std::sin(phi), r * std::cos(phi)}, Vec3::UnitX(),
+               spinA, spinB);
 }
 
 // The rail: one body at each end, both on the centreline seen from above, 50 mm
@@ -115,11 +113,10 @@ void expectSamePose(const Transform& got, const Transform& want, double tol)
 Transform tilted(const Transform& t, double angle, const Vec3& axis)
 {
     return frames::make(t.to, t.from, t.translation(),
-                        Quat(Eigen::AngleAxisd(angle, axis.normalized())) * t.rotation(),
-                        t.stamp);
+                        Quat(Eigen::AngleAxisd(angle, axis.normalized())) * t.rotation(), t.stamp);
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // round trips -- both parts, same code path
@@ -129,7 +126,7 @@ TEST(TwoMountPose, RotorRoundTrip)
 {
     // Chord ACROSS the spin axis. The part's origin is ~1.9 m from either mount
     // and on neither side of the chord by accident.
-    const Rig r = rotorRig();
+    const Rig r          = rotorRig();
     const Construction c = construct(r.a, r.b, r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
@@ -146,7 +143,7 @@ TEST(TwoMountPose, RotorRoundTrip)
 TEST(TwoMountPose, RailRoundTrip)
 {
     // Chord ALONG the axis, 10 m of it. Same function, no special case.
-    const Rig r = railRig();
+    const Rig r          = railRig();
     const Construction c = construct(r.a, r.b, r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
@@ -177,7 +174,7 @@ TEST(TwoMountPose, MountsNeedNotBeSymmetricAboutThePartOrigin)
     // Nothing requires the two bodies to be at equal reach or arranged
     // symmetrically -- the CAD points carry whatever arrangement is real. Here
     // one body is four times further from the origin than the other.
-    const Rig r = rig({0.2, 0.0, 0.05}, {3.0, 0.0, 0.05}, Vec3::UnitZ());
+    const Rig r          = rig({0.2, 0.0, 0.05}, {3.0, 0.0, 0.05}, Vec3::UnitZ());
     const Construction c = construct(r.a, r.b, r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
@@ -191,7 +188,7 @@ TEST(TwoMountPose, WorksWhenTheNormalIsNotPerpendicularToTheChord)
     // a sloped face is handled without a special case -- and its
     // chord_out_of_plane still reads zero, because it is measuring a
     // disagreement, not an angle.
-    const Rig r = rig({-1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, Vec3(0.5, 0.0, 1.0));
+    const Rig r          = rig({-1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, Vec3(0.5, 0.0, 1.0));
     const Construction c = construct(r.a, r.b, r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
@@ -213,18 +210,18 @@ TEST(TwoMountPose, ChordFixesEverythingButTheRollAboutIt)
 
     const Vec3 chordHat = (r.b.translation() - r.a.translation()).normalized();
     const Vec3 up       = r.truth.rotation() * Vec3::UnitZ();
-    const Vec3 across   = chordHat.cross(up);          // tilts `up` toward the chord
+    const Vec3 across   = chordHat.cross(up);   // tilts `up` toward the chord
 
     constexpr double kTilt = 0.02;   // ~1.1 degrees, ~20x a real seat error
-    const Construction c = construct(tilted(r.a, kTilt, across), tilted(r.b, kTilt, across),
-                                     r.geometry, "part");
+    const Construction c =
+        construct(tilted(r.a, kTilt, across), tilted(r.b, kTilt, across), r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
     expectSamePose(c.pose, r.truth, kLoose);
 
     // Visible while being corrected: chord * sin(tilt).
-    EXPECT_NEAR(std::abs(c.chord_out_of_plane_m),
-                r.geometry.chord_length_m() * std::sin(kTilt), 1e-6);
+    EXPECT_NEAR(std::abs(c.chord_out_of_plane_m), r.geometry.chord_length_m() * std::sin(kTilt),
+                1e-6);
 }
 
 TEST(TwoMountPose, RollAboutTheChordSurvives)
@@ -232,12 +229,12 @@ TEST(TwoMountPose, RollAboutTheChordSurvives)
     // The complement, and the honest half. Rotating both normals ABOUT the chord
     // leaves their relationship to it unchanged, so the chord sees nothing and
     // the error passes straight through into the part's orientation.
-    const Rig r = railRig();
+    const Rig r         = railRig();
     const Vec3 chordHat = (r.b.translation() - r.a.translation()).normalized();
 
     constexpr double kTilt = 0.02;
-    const Construction c = construct(tilted(r.a, kTilt, chordHat), tilted(r.b, kTilt, chordHat),
-                                     r.geometry, "part");
+    const Construction c =
+        construct(tilted(r.a, kTilt, chordHat), tilted(r.b, kTilt, chordHat), r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
 
@@ -262,8 +259,8 @@ TEST(TwoMountPose, SurvivingRollCostsTheOriginItsOffsetFromTheChord)
 
     const auto rollErrorFor = [&](const Rig& r) {
         const Vec3 chordHat = (r.b.translation() - r.a.translation()).normalized();
-        const Construction c = construct(tilted(r.a, tilt, chordHat), tilted(r.b, tilt, chordHat),
-                                         r.geometry, "part");
+        const Construction c =
+            construct(tilted(r.a, tilt, chordHat), tilted(r.b, tilt, chordHat), r.geometry, "part");
         EXPECT_TRUE(c.constructed);
         return (c.pose.translation() - r.truth.translation()).norm();
     };
@@ -311,11 +308,11 @@ TEST(TwoMountPose, ChordErrorCatchesAMiscountedGroove)
 
 TEST(TwoMountPose, NormalDisagreementCatchesABodyNotSeatedFlat)
 {
-    const Rig r = railRig();
+    const Rig r         = railRig();
     const Vec3 chordHat = (r.b.translation() - r.a.translation()).normalized();
 
     constexpr double kRock = 0.5 * kPi / 180.0;
-    const Construction c = construct(r.a, tilted(r.b, kRock, chordHat), r.geometry, "part");
+    const Construction c   = construct(r.a, tilted(r.b, kRock, chordHat), r.geometry, "part");
 
     ASSERT_TRUE(c.constructed) << c.skip_reason;
     EXPECT_NEAR(c.normal_disagreement_rad, kRock, 1e-9);
@@ -342,7 +339,7 @@ TEST(TwoMountPose, NormalDisagreementResolvesAnglesFarBelowWhatAcosCan)
 
     // About an axis perpendicular to the normal, so the normal moves by the full
     // tilt rather than some cosine of it.
-    const Vec3 perp = r.truth.rotation() * Vec3::UnitX();
+    const Vec3 perp         = r.truth.rotation() * Vec3::UnitX();
     const Transform tiltedB = tilted(r.b, kTiny, perp);
 
     const Construction c = construct(r.a, tiltedB, r.geometry, "part");
@@ -446,7 +443,7 @@ TEST(TwoMountPose, AWrongBodyAxisAtTheSAMEAngleToTheChordIsInvisible)
 
 TEST(TwoMountPose, ExpectedNormalIsCleanWhenTheAxisIsRight)
 {
-    Rig r = railRig();
+    Rig r                              = railRig();
     r.geometry.expect_normal_in_parent = r.truth.rotation() * Vec3::UnitZ();
 
     const Construction c = construct(r.a, r.b, r.geometry, "part");
@@ -467,9 +464,9 @@ TEST(TwoMountPose, ExpectedNormalCatchesTheWrongBodyAxisOnARail)
     // read clean there. Here it comes back as a right angle.
     const Rig r = railRig();
 
-    Geometry wrong                   = r.geometry;
-    wrong.normal_axis                = Vec3::UnitY();
-    wrong.expect_normal_in_parent    = r.truth.rotation() * Vec3::UnitZ();
+    Geometry wrong                = r.geometry;
+    wrong.normal_axis             = Vec3::UnitY();
+    wrong.expect_normal_in_parent = r.truth.rotation() * Vec3::UnitZ();
 
     const Construction c = construct(r.a, r.b, wrong, "part");
     ASSERT_TRUE(c.constructed) << c.skip_reason;   // reported, never fatal
@@ -548,7 +545,7 @@ TEST(TwoMountPose, ADegenerateExpectationIsAnAbsentCheckNotAFailure)
     // compare against. It leaves the check absent rather than refusing the
     // construction: the pose is unaffected by this field, and withholding a good
     // pose over a bad diagnostic would trade a real output for a cosmetic one.
-    Rig r = railRig();
+    Rig r                              = railRig();
     r.geometry.expect_normal_in_parent = Vec3::Zero();
 
     const Construction c = construct(r.a, r.b, r.geometry, "part");
@@ -566,12 +563,12 @@ TEST(TwoMountPose, ChordErrorIsNotFudgedIntoThePose)
     // is `b` cannot change the answer.
     const Rig believed = railRig();
 
-    Rig stretched = railRig();
-    stretched.geometry = believed.geometry;                     // CAD unchanged
-    stretched.b = frames::make(stretched.b.to, stretched.b.from,
-                               stretched.b.translation() +
-                                   (stretched.truth.rotation() * Vec3(0.01, 0, 0)),
-                               stretched.b.rotation());
+    Rig stretched      = railRig();
+    stretched.geometry = believed.geometry;   // CAD unchanged
+    stretched.b =
+        frames::make(stretched.b.to, stretched.b.from,
+                     stretched.b.translation() + (stretched.truth.rotation() * Vec3(0.01, 0, 0)),
+                     stretched.b.rotation());
 
     const Construction ab = construct(stretched.a, stretched.b, believed.geometry, "part");
     ASSERT_TRUE(ab.constructed);
@@ -579,9 +576,9 @@ TEST(TwoMountPose, ChordErrorIsNotFudgedIntoThePose)
 
     // Swap both the bodies and the CAD points, which describes the identical
     // hardware. The pose must be bit-comparable.
-    Geometry swapped     = believed.geometry;
-    swapped.mount_a_m    = believed.geometry.mount_b_m;
-    swapped.mount_b_m    = believed.geometry.mount_a_m;
+    Geometry swapped  = believed.geometry;
+    swapped.mount_a_m = believed.geometry.mount_b_m;
+    swapped.mount_b_m = believed.geometry.mount_a_m;
 
     const Construction ba = construct(stretched.b, stretched.a, swapped, "part");
     ASSERT_TRUE(ba.constructed);
@@ -594,8 +591,8 @@ TEST(TwoMountPose, ChordErrorIsNotFudgedIntoThePose)
 
 TEST(TwoMountPose, ZeroNormalAxisIsRefused)
 {
-    const Rig r = railRig();
-    Geometry g  = r.geometry;
+    const Rig r   = railRig();
+    Geometry g    = r.geometry;
     g.normal_axis = Vec3::Zero();
 
     const Construction c = construct(r.a, r.b, g, "part");
@@ -609,8 +606,8 @@ TEST(TwoMountPose, ZeroNormalAxisIsRefused)
 
 TEST(TwoMountPose, ZeroNormalInPartIsRefused)
 {
-    const Rig r = railRig();
-    Geometry g  = r.geometry;
+    const Rig r      = railRig();
+    Geometry g       = r.geometry;
     g.normal_in_part = Vec3::Zero();
 
     const Construction c = construct(r.a, r.b, g, "part");
@@ -631,8 +628,8 @@ TEST(TwoMountPose, CoincidentCadPointsAreRefused)
 
 TEST(TwoMountPose, NormalParallelToTheCadChordIsRefused)
 {
-    const Rig r = railRig();
-    Geometry g  = r.geometry;
+    const Rig r      = railRig();
+    Geometry g       = r.geometry;
     g.normal_in_part = Vec3::UnitX();   // the rail's chord runs along X
 
     const Construction c = construct(r.a, r.b, g, "part");
@@ -653,9 +650,8 @@ TEST(TwoMountPose, AntiparallelNormalsAreRefused)
 
 TEST(TwoMountPose, CoincidentBodiesAreRefused)
 {
-    const Rig r = railRig();
-    const Transform bOnA =
-        frames::make(r.b.to, r.b.from, r.a.translation(), r.b.rotation());
+    const Rig r          = railRig();
+    const Transform bOnA = frames::make(r.b.to, r.b.from, r.a.translation(), r.b.rotation());
 
     const Construction c = construct(r.a, bOnA, r.geometry, "part");
     EXPECT_FALSE(c.constructed);
@@ -682,10 +678,8 @@ TEST(TwoMountPose, ConstructedPoseCarriesTheOlderStamp)
     // the comparison layer's time gate can see it.
     const Rig r = railRig();
 
-    const Transform a =
-        frames::make(r.a.to, r.a.from, r.a.translation(), r.a.rotation(), 100.0);
-    const Transform b =
-        frames::make(r.b.to, r.b.from, r.b.translation(), r.b.rotation(), 97.5);
+    const Transform a = frames::make(r.a.to, r.a.from, r.a.translation(), r.a.rotation(), 100.0);
+    const Transform b = frames::make(r.b.to, r.b.from, r.b.translation(), r.b.rotation(), 97.5);
 
     const Construction c = construct(a, b, r.geometry, "part");
     ASSERT_TRUE(c.constructed);

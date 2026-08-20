@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-// A PURE VIEWER. 
+// A PURE VIEWER.
 class RobotScene : public QObject {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel* model READ model CONSTANT)
@@ -50,8 +50,8 @@ private:
     void setStatus(QString value, bool loaded);
 
     void buildJointIndex();
-    void setJointByName(std::vector<double>& q, const QString& armPrefix,
-                        const QString& suffix, double value) const;
+    void setJointByName(std::vector<double>& q, const QString& armPrefix, const QString& suffix,
+                        double value) const;
 
     bool importArticulated(const scene::Placement& placement,
                            std::vector<mu::robot::RobotVisual>& rows);
@@ -68,23 +68,23 @@ private:
     std::map<std::string, int> jointIndex_;
 
     std::string articulatedId_;
-    QVector3D   articulatedRootMm_{0.0f, 0.0f, 0.0f};
+    QVector3D articulatedRootMm_{0.0f, 0.0f, 0.0f};
     QQuaternion articulatedRootRot_;
-    bool        articulatedRootValid_{false};
-    bool        loggedArticulated_{false};
+    bool articulatedRootValid_{false};
+    bool loggedArticulated_{false};
 
     std::vector<double> lastJoints_;
 
     double renderSmoothing_{1.0};   // 1.0 = raw
-    bool   haveSmoothedJoints_{false};
-    bool   haveSmoothedRoot_{false};
+    bool haveSmoothedJoints_{false};
+    bool haveSmoothedRoot_{false};
 
     std::map<std::string, float> meshScale_;
 
     struct VisualOffset {
-        QVector3D   positionScene;   // already in scene units, not metres
+        QVector3D positionScene;   // already in scene units, not metres
         QQuaternion rotation;
-        bool        identity{true};  // skips the composition in the common case
+        bool identity{true};   // skips the composition in the common case
     };
     std::map<std::string, VisualOffset> visualOffset_;
 };

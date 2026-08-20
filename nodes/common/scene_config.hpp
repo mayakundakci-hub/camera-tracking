@@ -40,7 +40,6 @@ enum class Source {
                     // face -- inputs + construction
 };
 
-
 enum class Capture { Latched, Continuous };
 
 std::string toString(Source s);
@@ -59,26 +58,26 @@ struct MountOffset {
 };
 
 struct Calibration {
-    bool        present{false};
+    bool present{false};
     std::string date;
-    double      rms_mm{-1.0};
+    double rms_mm{-1.0};
     std::string motive_asset_rev;
     std::string note;
 };
 struct LatchOverride {
     std::optional<std::size_t> min_samples;
-    std::optional<double>      max_mean_error_m;
-    std::optional<double>      mad_k;
-    std::optional<double>      max_reject_fraction;
-    std::optional<double>      max_spread_m;
-    std::optional<double>      max_spread_rad;
-    std::optional<double>      timeout_s;
+    std::optional<double> max_mean_error_m;
+    std::optional<double> mad_k;
+    std::optional<double> max_reject_fraction;
+    std::optional<double> max_spread_m;
+    std::optional<double> max_spread_rad;
+    std::optional<double> timeout_s;
 };
 
 struct JointSpec {
     jointproj::RevoluteJoint geometry;
     std::string reported_arm;
-    int         reported_index{-1};
+    int reported_index{-1};
 };
 
 struct ConstructionSpec {
@@ -88,36 +87,36 @@ struct ConstructionSpec {
 struct Placement {
     std::string id;          // frame name; unique across the whole scene
     std::string object_id;   // owner; filled in by the loader
-    Source      source{Source::Static};
-    Capture     capture{Capture::Continuous};
+    Source source{Source::Static};
+    Capture capture{Capture::Continuous};
     LatchOverride latch;
 
-    int         asset_id{0};
+    int asset_id{0};
     std::string topic;
     std::string urdf;   // resolved absolute path
     std::vector<std::string> inputs;
-    std::string                measured;
-    std::optional<JointSpec>   joint;
+    std::string measured;
+    std::optional<JointSpec> joint;
     std::optional<ConstructionSpec> construction;
     MountOffset pose;
     std::string parent_frame;
-    bool        compare{true};
+    bool compare{true};
     std::string color{"#cccccc"};
-    bool        visible{true};
+    bool visible{true};
 };
 
 struct Object {
-    std::string            id;
-    std::string            display_name;
-    std::string            visual_mesh;      // resolved absolute; empty = frame-only
-    double                 mesh_scale{1.0};
+    std::string id;
+    std::string display_name;
+    std::string visual_mesh;   // resolved absolute; empty = frame-only
+    double mesh_scale{1.0};
 
-    MountOffset            visual_offset;
+    MountOffset visual_offset;
     std::vector<Placement> placements;
-    Calibration            calibrated;
-    fs::path               source_file;      // for error messages
+    Calibration calibrated;
+    fs::path source_file;   // for error messages
 
-    std::optional<bool>    review_gate;
+    std::optional<bool> review_gate;
 };
 
 struct Comparison {
@@ -127,9 +126,9 @@ struct Comparison {
 };
 
 struct Scene {
-    std::string         anchor_frame;   // a placement id; the render frame
-    fs::path            root;           // paths in object files resolve against this
-    fs::path            manifest_file;
+    std::string anchor_frame;   // a placement id; the render frame
+    fs::path root;              // paths in object files resolve against this
+    fs::path manifest_file;
     std::vector<Object> objects;
 
     [[nodiscard]] const Object* findObject(const std::string& id) const&
@@ -184,22 +183,27 @@ std::string describe(const Scene& scene);
 
 inline std::string toString(Source s)
 {
-    switch (s) {
-        case Source::Optitrack:    return "optitrack";
-        case Source::ExpectedPose: return "expected_pose";
-        case Source::JointState:   return "joint_state";
-        case Source::Static:       return "static";
-        case Source::Fused:        return "fused";
-        case Source::Projected:    return "projected";
-        case Source::Constructed:  return "constructed";
+    switch (s)
+    {
+        case Source::Optitrack:
+            return "optitrack";
+        case Source::ExpectedPose:
+            return "expected_pose";
+        case Source::JointState:
+            return "joint_state";
+        case Source::Static:
+            return "static";
+        case Source::Fused:
+            return "fused";
+        case Source::Projected:
+            return "projected";
+        case Source::Constructed:
+            return "constructed";
     }
     return "?";
 }
 
-inline std::string toString(Capture c)
-{
-    return c == Capture::Latched ? "latched" : "continuous";
-}
+inline std::string toString(Capture c) { return c == Capture::Latched ? "latched" : "continuous"; }
 
 namespace detail {
 
@@ -219,7 +223,8 @@ public:
         std::ostringstream os;
         os << "scene config invalid (" << items_.size() << " problem"
            << (items_.size() == 1 ? "" : "s") << ") loading " << manifest.string() << ":\n";
-        for (const auto& i : items_) os << i << "\n";
+        for (const auto& i : items_)
+            os << i << "\n";
         throw SceneConfigError(os.str());
     }
 
@@ -232,11 +237,14 @@ inline json readJson(const fs::path& p, const std::string& role)
     std::ifstream f(p);
     if (!f.is_open())
         throw SceneConfigError("scene config: cannot open " + role + " '" + p.string() + "'");
-    try {
+    try
+    {
         json j;
         f >> j;
         return j;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         throw SceneConfigError("scene config: " + role + " '" + p.string() +
                                "' is not valid JSON -- " + e.what());
     }
@@ -259,34 +267,43 @@ inline MountOffset parseOffset(const json& j, const std::string& where, Errors& 
 {
     MountOffset out;
 
-    if (j.contains("position_mm")) {
+    if (j.contains("position_mm"))
+    {
         const auto& a = j.at("position_mm");
-        if (!a.is_array() || a.size() != 3) {
+        if (!a.is_array() || a.size() != 3)
+        {
             errs.add(where, "'position_mm' must be an array of 3 numbers");
-        } else {
-            out.translation = frames::convert::vecFromMm(a[0].get<double>(),
-                                                         a[1].get<double>(),
+        }
+        else
+        {
+            out.translation = frames::convert::vecFromMm(a[0].get<double>(), a[1].get<double>(),
                                                          a[2].get<double>());
         }
     }
 
-    if (j.contains("quat_wxyz")) {
+    if (j.contains("quat_wxyz"))
+    {
         const auto& a = j.at("quat_wxyz");
-        if (!a.is_array() || a.size() != 4) {
+        if (!a.is_array() || a.size() != 4)
+        {
             errs.add(where, "'quat_wxyz' must be an array of 4 numbers [w,x,y,z]");
-        } else {
-            try {
-                out.rotation = frames::convert::quatFromWxyz(a[0].get<double>(),
-                                                             a[1].get<double>(),
-                                                             a[2].get<double>(),
-                                                             a[3].get<double>());
-            } catch (const frames::FrameError& e) {
+        }
+        else
+        {
+            try
+            {
+                out.rotation = frames::convert::quatFromWxyz(
+                    a[0].get<double>(), a[1].get<double>(), a[2].get<double>(), a[3].get<double>());
+            }
+            catch (const frames::FrameError& e)
+            {
                 errs.add(where, e.what());
             }
         }
     }
 
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    for (auto it = j.begin(); it != j.end(); ++it)
+    {
         const std::string& k = it.key();
         if (k != "position_mm" && k != "quat_wxyz" && k.rfind('_', 0) != 0)
             errs.add(where, "unknown key '" + k + "' (expected position_mm, quat_wxyz)");
@@ -300,46 +317,62 @@ inline LatchOverride parseLatch(const json& j, const std::string& where, Errors&
 
     const auto positive = [&](const char* key, double& sink) {
         const double v = j.at(key).get<double>();
-        if (v <= 0.0) { errs.add(where, std::string("'") + key + "' must be positive"); return false; }
+        if (v <= 0.0)
+        {
+            errs.add(where, std::string("'") + key + "' must be positive");
+            return false;
+        }
         sink = v;
         return true;
     };
 
-    if (j.contains("min_samples")) {
+    if (j.contains("min_samples"))
+    {
         const auto v = j.at("min_samples").get<long long>();
-        if (v < 1) errs.add(where, "'min_samples' must be at least 1");
-        else       out.min_samples = static_cast<std::size_t>(v);
+        if (v < 1)
+            errs.add(where, "'min_samples' must be at least 1");
+        else
+            out.min_samples = static_cast<std::size_t>(v);
     }
-    if (j.contains("max_mean_error_mm")) {
+    if (j.contains("max_mean_error_mm"))
+    {
         double mm = 0.0;
         if (positive("max_mean_error_mm", mm)) out.max_mean_error_m = frames::convert::mmToM(mm);
     }
-    if (j.contains("mad_k")) {
+    if (j.contains("mad_k"))
+    {
         double k = 0.0;
         if (positive("mad_k", k)) out.mad_k = k;
     }
-    if (j.contains("max_reject_fraction")) {
+    if (j.contains("max_reject_fraction"))
+    {
         const double v = j.at("max_reject_fraction").get<double>();
-        if (v < 0.0 || v > 1.0) errs.add(where, "'max_reject_fraction' must be in [0, 1]");
-        else                    out.max_reject_fraction = v;
+        if (v < 0.0 || v > 1.0)
+            errs.add(where, "'max_reject_fraction' must be in [0, 1]");
+        else
+            out.max_reject_fraction = v;
     }
-    if (j.contains("max_spread_mm")) {
+    if (j.contains("max_spread_mm"))
+    {
         double mm = 0.0;
         if (positive("max_spread_mm", mm)) out.max_spread_m = frames::convert::mmToM(mm);
     }
-    if (j.contains("max_spread_deg")) {
+    if (j.contains("max_spread_deg"))
+    {
         double deg = 0.0;
         if (positive("max_spread_deg", deg)) out.max_spread_rad = frames::convert::degToRad(deg);
     }
-    if (j.contains("timeout_s")) {
+    if (j.contains("timeout_s"))
+    {
         double s = 0.0;
         if (positive("timeout_s", s)) out.timeout_s = s;
     }
 
-    static const char* kKnown[] = {"min_samples",   "max_mean_error_mm", "mad_k",
-                                   "max_reject_fraction", "max_spread_mm", "max_spread_deg",
-                                   "timeout_s"};
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    static const char* kKnown[] = {
+        "min_samples",   "max_mean_error_mm", "mad_k",    "max_reject_fraction",
+        "max_spread_mm", "max_spread_deg",    "timeout_s"};
+    for (auto it = j.begin(); it != j.end(); ++it)
+    {
         const std::string& k = it.key();
         if (k.rfind('_', 0) == 0) continue;
         if (std::find(std::begin(kKnown), std::end(kKnown), k) == std::end(kKnown))
@@ -352,53 +385,72 @@ inline JointSpec parseJoint(const json& j, const std::string& where, Errors& err
 {
     JointSpec out;
 
-    if (!j.contains("zero_pose")) {
+    if (!j.contains("zero_pose"))
+    {
         errs.add(where, "a joint needs a 'zero_pose' -- where the CHILD body's frame sits in the "
                         "PARENT body's frame at theta = 0. Read it off the running system with "
                         "the joint at a known angle, or off CAD");
-    } else {
-        const MountOffset zero = parseOffset(j.at("zero_pose"), where + " zero_pose", errs);
+    }
+    else
+    {
+        const MountOffset zero     = parseOffset(j.at("zero_pose"), where + " zero_pose", errs);
         out.geometry.zero_origin_m = zero.translation;
         out.geometry.zero_rotation = zero.rotation;
     }
 
-    if (!j.contains("axis_point")) {
+    if (!j.contains("axis_point"))
+    {
         errs.add(where, "a joint needs an 'axis_point' -- any point its rotation axis passes "
                         "through, in the parent placement's frame. ANY point on the axis works, "
                         "since sliding along it changes nothing, so pick whichever is easiest to "
                         "measure. Set it equal to zero_pose's position if the body's frame really "
                         "is on the axis");
-    } else {
-        const MountOffset ap = parseOffset(j.at("axis_point"), where + " axis_point", errs);
+    }
+    else
+    {
+        const MountOffset ap      = parseOffset(j.at("axis_point"), where + " axis_point", errs);
         out.geometry.axis_point_m = ap.translation;
         if (j.at("axis_point").contains("quat_wxyz"))
             errs.add(where, "'axis_point' is a point, not a pose -- drop its 'quat_wxyz'. The "
                             "axis's direction is the 'axis' key");
     }
 
-    if (!j.contains("axis")) {
+    if (!j.contains("axis"))
+    {
         errs.add(where, "a joint needs an 'axis' -- the direction it turns about, in the parent "
                         "placement's frame. There is no default: a zero axis is a catastrophic "
                         "pose, not a small error");
-    } else if (const auto& a = j.at("axis"); !a.is_array() || a.size() != 3) {
+    }
+    else if (const auto& a = j.at("axis"); !a.is_array() || a.size() != 3)
+    {
         errs.add(where, "'axis' must be an array of 3 numbers");
-    } else {
+    }
+    else
+    {
         const frames::Vec3 axis(a[0].get<double>(), a[1].get<double>(), a[2].get<double>());
-        if (!axis.allFinite())          errs.add(where, "'axis' has a non-finite component");
-        else if (!(axis.norm() > 1e-9)) errs.add(where, "'axis' has zero length; it must name a "
-                                                        "direction");
-        else                            out.geometry.axis = axis.normalized();
+        if (!axis.allFinite())
+            errs.add(where, "'axis' has a non-finite component");
+        else if (!(axis.norm() > 1e-9))
+            errs.add(where, "'axis' has zero length; it must name a "
+                            "direction");
+        else
+            out.geometry.axis = axis.normalized();
     }
 
     const bool hasLower = j.contains("lower_deg");
     const bool hasUpper = j.contains("upper_deg");
-    if (hasLower != hasUpper) {
+    if (hasLower != hasUpper)
+    {
         errs.add(where, "'lower_deg' and 'upper_deg' must be given together");
-    } else if (hasLower) {
+    }
+    else if (hasLower)
+    {
         const double lo = j.at("lower_deg").get<double>();
         const double hi = j.at("upper_deg").get<double>();
-        if (!(lo < hi)) errs.add(where, "'lower_deg' must be less than 'upper_deg'");
-        else {
+        if (!(lo < hi))
+            errs.add(where, "'lower_deg' must be less than 'upper_deg'");
+        else
+        {
             out.geometry.lower_rad = frames::convert::degToRad(lo);
             out.geometry.upper_rad = frames::convert::degToRad(hi);
         }
@@ -408,18 +460,21 @@ inline JointSpec parseJoint(const json& j, const std::string& where, Errors& err
         errs.add(where, "a joint needs 'reported_arm' ('Left' or 'Right') to know which "
                         "JointStatePacket to compare its estimate against");
 
-    if (!j.contains("reported_index")) {
+    if (!j.contains("reported_index"))
+    {
         errs.add(where, "a joint needs 'reported_index' -- which entry of the controller's "
                         "hand_joints array this joint is");
-    } else {
+    }
+    else
+    {
         out.reported_index = j.at("reported_index").get<int>();
-        if (out.reported_index < 0)
-            errs.add(where, "'reported_index' must be zero or greater");
+        if (out.reported_index < 0) errs.add(where, "'reported_index' must be zero or greater");
     }
 
-    static const char* kKnown[] = {"zero_pose", "axis_point",   "axis",         "lower_deg",
+    static const char* kKnown[] = {"zero_pose", "axis_point",   "axis",          "lower_deg",
                                    "upper_deg", "reported_arm", "reported_index"};
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    for (auto it = j.begin(); it != j.end(); ++it)
+    {
         const std::string& k = it.key();
         if (k.rfind('_', 0) == 0) continue;
         if (std::find(std::begin(kKnown), std::end(kKnown), k) == std::end(kKnown))
@@ -434,22 +489,26 @@ inline ConstructionSpec parseConstruction(const json& j, const std::string& wher
 
     const auto direction = [&](const char* key, bool required,
                                const char* what) -> std::optional<frames::Vec3> {
-        if (!j.contains(key)) {
+        if (!j.contains(key))
+        {
             if (required)
                 errs.add(where, std::string("a construction needs '") + key + "' -- " + what);
             return std::nullopt;
         }
         const auto& a = j.at(key);
-        if (!a.is_array() || a.size() != 3) {
+        if (!a.is_array() || a.size() != 3)
+        {
             errs.add(where, std::string("'") + key + "' must be an array of 3 numbers");
             return std::nullopt;
         }
         const frames::Vec3 v(a[0].get<double>(), a[1].get<double>(), a[2].get<double>());
-        if (!v.allFinite()) {
+        if (!v.allFinite())
+        {
             errs.add(where, std::string("'") + key + "' has a non-finite component");
             return std::nullopt;
         }
-        if (!(v.norm() > 1e-9)) {
+        if (!(v.norm() > 1e-9))
+        {
             errs.add(where, std::string("'") + key + "' has zero length; it must name a direction");
             return std::nullopt;
         }
@@ -480,30 +539,33 @@ inline ConstructionSpec parseConstruction(const json& j, const std::string& wher
         "part whose attitude the room does not already know");
 
     const auto point = [&](const char* key, const char* what, frames::Vec3& dst) {
-        if (!j.contains(key)) {
+        if (!j.contains(key))
+        {
             errs.add(where, std::string("a construction needs '") + key + "' -- " + what);
             return;
         }
         dst = parseOffset(j.at(key), where + " " + key, errs).translation;
         if (j.at(key).contains("quat_wxyz"))
-            errs.add(where, std::string("'") + key + "' is a point, not a pose -- drop its "
-                            "'quat_wxyz'. Which way the bodies face is 'normal_axis'");
+            errs.add(where, std::string("'") + key +
+                                "' is a point, not a pose -- drop its "
+                                "'quat_wxyz'. Which way the bodies face is 'normal_axis'");
     };
 
-    point("mount_a", "where the FIRST body listed in 'inputs' sits, in the PART's frame. This is "
-                     "the Motive pivot's location, not the marker centroid and not the seat",
+    point("mount_a",
+          "where the FIRST body listed in 'inputs' sits, in the PART's frame. This is "
+          "the Motive pivot's location, not the marker centroid and not the seat",
           out.geometry.mount_a_m);
     point("mount_b", "where the SECOND body listed in 'inputs' sits, in the PART's frame",
           out.geometry.mount_b_m);
 
-    if (j.contains("mount_a") && j.contains("mount_b") &&
-        out.geometry.chord_length_m() < 1e-9)
+    if (j.contains("mount_a") && j.contains("mount_b") && out.geometry.chord_length_m() < 1e-9)
         errs.add(where, "'mount_a' and 'mount_b' are the same point; the construction is built on "
                         "the line between the two bodies, and there is none");
 
     static const char* kKnown[] = {"normal_axis", "normal_in_part", "mount_a", "mount_b",
                                    "expect_normal_in_parent"};
-    for (auto it = j.begin(); it != j.end(); ++it) {
+    for (auto it = j.begin(); it != j.end(); ++it)
+    {
         const std::string& k = it.key();
         if (k.rfind('_', 0) == 0) continue;
         if (std::find(std::begin(kKnown), std::end(kKnown), k) == std::end(kKnown))
@@ -514,13 +576,13 @@ inline ConstructionSpec parseConstruction(const json& j, const std::string& wher
 
 inline std::optional<Source> parseSource(const std::string& s)
 {
-    if (s == "optitrack")     return Source::Optitrack;
+    if (s == "optitrack") return Source::Optitrack;
     if (s == "expected_pose") return Source::ExpectedPose;
-    if (s == "joint_state")   return Source::JointState;
-    if (s == "static")        return Source::Static;
-    if (s == "fused")         return Source::Fused;
-    if (s == "projected")     return Source::Projected;
-    if (s == "constructed")   return Source::Constructed;
+    if (s == "joint_state") return Source::JointState;
+    if (s == "static") return Source::Static;
+    if (s == "fused") return Source::Fused;
+    if (s == "projected") return Source::Projected;
+    if (s == "constructed") return Source::Constructed;
     return std::nullopt;
 }
 
@@ -531,29 +593,39 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
     p.object_id = owner.id;
 
     const std::string where0 = owner.source_file.filename().string();
-    p.id = j.value("id", std::string{});
-    if (p.id.empty()) {
+    p.id                     = j.value("id", std::string{});
+    if (p.id.empty())
+    {
         errs.add(where0, "a placement is missing required key 'id' (it becomes the frame name)");
         p.id = "<unnamed>";
     }
     const std::string where = where0 + " placement '" + p.id + "'";
 
     const std::string srcStr = j.value("source", std::string{});
-    if (auto s = parseSource(srcStr)) {
+    if (auto s = parseSource(srcStr))
+    {
         p.source = *s;
-    } else {
+    }
+    else
+    {
         errs.add(where, "'source' is '" + srcStr +
-                        "'; expected one of optitrack, expected_pose, joint_state, static, "
-                        "fused, projected, constructed");
+                            "'; expected one of optitrack, expected_pose, joint_state, static, "
+                            "fused, projected, constructed");
         return p;   // every check below is source-specific
     }
 
-    if (j.contains("capture")) {
+    if (j.contains("capture"))
+    {
         const std::string c = j.at("capture").get<std::string>();
-        if (c == "latched")         p.capture = Capture::Latched;
-        else if (c == "continuous") p.capture = Capture::Continuous;
-        else errs.add(where, "'capture' is '" + c + "'; expected 'latched' or 'continuous'");
-    } else if (p.source == Source::Optitrack) {
+        if (c == "latched")
+            p.capture = Capture::Latched;
+        else if (c == "continuous")
+            p.capture = Capture::Continuous;
+        else
+            errs.add(where, "'capture' is '" + c + "'; expected 'latched' or 'continuous'");
+    }
+    else if (p.source == Source::Optitrack)
+    {
         // No default: latched-vs-continuous is a real semantic difference, and
         // guessing it wrong either freezes a moving object or lets a bolted
         // one drift with tracking noise.
@@ -561,23 +633,25 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
     }
 
     if (j.contains("measured") && p.source != Source::Projected)
-        errs.add(where, "has 'measured' but source is '" + toString(p.source) +
-                        "'; only 'projected' placements project another placement's measurement");
+        errs.add(where,
+                 "has 'measured' but source is '" + toString(p.source) +
+                     "'; only 'projected' placements project another placement's measurement");
     if (j.contains("joint") && p.source != Source::Projected)
         errs.add(where, "has a 'joint' block but source is '" + toString(p.source) +
-                        "'; only 'projected' placements hang off a joint");
+                            "'; only 'projected' placements hang off a joint");
     if (j.contains("construction") && p.source != Source::Constructed)
         errs.add(where, "has a 'construction' block but source is '" + toString(p.source) +
-                        "'; only 'constructed' placements build a pose from two mounts");
+                            "'; only 'constructed' placements build a pose from two mounts");
 
-    if (j.contains("latch")) {
+    if (j.contains("latch"))
+    {
 
         if (p.capture != Capture::Latched)
             errs.add(where, "has a 'latch' block but capture is '" + toString(p.capture) +
-                            "'; latch thresholds only apply to 'latched' captures");
+                                "'; latch thresholds only apply to 'latched' captures");
         else if (p.source != Source::Optitrack && p.source != Source::ExpectedPose)
             errs.add(where, "has a 'latch' block but source is '" + toString(p.source) +
-                            "'; only measured sources (optitrack, expected_pose) latch");
+                                "'; only measured sources (optitrack, expected_pose) latch");
         else
             p.latch = parseLatch(j.at("latch"), where + " latch", errs);
     }
@@ -586,8 +660,7 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
     p.color        = j.value("color", std::string{"#cccccc"});
     p.visible      = j.value("visible", true);
     p.compare      = j.value("compare", true);
-    if (!isHexColor(p.color))
-        errs.add(where, "'color' is '" + p.color + "'; expected #RRGGBB");
+    if (!isHexColor(p.color)) errs.add(where, "'color' is '" + p.color + "'; expected #RRGGBB");
 
     switch (p.source)
     {
@@ -596,7 +669,7 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
             if (p.asset_id <= 0)
                 errs.add(where, "optitrack placements need a positive 'asset_id' "
                                 "(the Motive rigid-body streaming id)");
-    
+
             if (j.contains("model_in_marker_frame"))
                 errs.add(where, "'model_in_marker_frame' no longer exists -- Motive's rigid-body "
                                 "frame IS the placement's frame. Set the pivot in Motive at the "
@@ -615,20 +688,22 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
             p.topic = j.value("topic", std::string{});
             if (p.topic.empty())
                 errs.add(where, "joint_state placements need a 'topic' carrying joint state");
-            if (const std::string u = j.value("urdf", std::string{}); u.empty()) {
+            if (const std::string u = j.value("urdf", std::string{}); u.empty())
+            {
                 errs.add(where, "joint_state placements need a 'urdf'");
-            } else {
+            }
+            else
+            {
                 const fs::path resolved = resolvePath(root, u);
                 if (!fs::exists(resolved))
-                    errs.add(where, "urdf '" + u + "' not found (resolved to " +
-                                    resolved.string() + ")");
+                    errs.add(where,
+                             "urdf '" + u + "' not found (resolved to " + resolved.string() + ")");
                 p.urdf = resolved.string();
             }
             break;
 
         case Source::Static:
-            if (j.contains("pose"))
-                p.pose = parseOffset(j.at("pose"), where + " pose", errs);
+            if (j.contains("pose")) p.pose = parseOffset(j.at("pose"), where + " pose", errs);
             // A static placement with no pose is identity, which is a
             // legitimate and useful thing to say -- notably for the anchor
             // during bring-up, before any marker is installed.
@@ -681,12 +756,13 @@ inline Placement parsePlacement(const json& j, const Object& owner, const fs::pa
             {
                 for (const auto& in : j.at("inputs"))
                     p.inputs.push_back(in.get<std::string>());
-                
+
                 if (p.inputs.size() != 2)
-                    errs.add(where, "constructed placements need exactly 2 inputs, not " +
-                                    std::to_string(p.inputs.size()) +
-                                    ". The construction is built on the chord between two mounts "
-                                    "on one face; it has no meaning for any other count");
+                    errs.add(where,
+                             "constructed placements need exactly 2 inputs, not " +
+                                 std::to_string(p.inputs.size()) +
+                                 ". The construction is built on the chord between two mounts "
+                                 "on one face; it has no meaning for any other count");
             }
 
             if (!j.contains("construction"))
@@ -714,16 +790,18 @@ inline Object parseObject(const std::string& name, const fs::path& file, const f
 
     const std::string where = file.filename().string();
 
-    if (const std::string m = j.value("visual_mesh", std::string{}); !m.empty()) {
+    if (const std::string m = j.value("visual_mesh", std::string{}); !m.empty())
+    {
         const fs::path resolved = resolvePath(root, m);
         if (!fs::exists(resolved))
-            errs.add(where, "visual_mesh '" + m + "' not found (resolved to " +
-                            resolved.string() + ")");
+            errs.add(where,
+                     "visual_mesh '" + m + "' not found (resolved to " + resolved.string() + ")");
         o.visual_mesh = resolved.string();
     }
 
-    if (j.contains("visual_offset")) {
-       
+    if (j.contains("visual_offset"))
+    {
+
         if (o.visual_mesh.empty())
             errs.add(where, "has a 'visual_offset' but no 'visual_mesh'; the offset positions a "
                             "mesh relative to its placement, so without one it does nothing");
@@ -731,15 +809,17 @@ inline Object parseObject(const std::string& name, const fs::path& file, const f
             o.visual_offset = parseOffset(j.at("visual_offset"), where + " visual_offset", errs);
     }
 
-    if (j.contains("review_gate")) {
+    if (j.contains("review_gate"))
+    {
         if (!j.at("review_gate").is_boolean())
             errs.add(where, "'review_gate' must be true or false");
         else
             o.review_gate = j.at("review_gate").get<bool>();
     }
 
-    if (j.contains("calibrated")) {
-        const auto& c = j.at("calibrated");
+    if (j.contains("calibrated"))
+    {
+        const auto& c                 = j.at("calibrated");
         o.calibrated.present          = true;
         o.calibrated.date             = c.value("date", std::string{});
         o.calibrated.rms_mm           = c.value("rms_mm", -1.0);
@@ -747,8 +827,7 @@ inline Object parseObject(const std::string& name, const fs::path& file, const f
         o.calibrated.note             = c.value("note", std::string{});
     }
 
-    if (!j.contains("placements") || !j.at("placements").is_array() ||
-        j.at("placements").empty())
+    if (!j.contains("placements") || !j.at("placements").is_array() || j.at("placements").empty())
     {
         errs.add(where, "'placements' must be a non-empty array -- an object with no "
                         "placement has no position and cannot be rendered or compared");
@@ -761,7 +840,7 @@ inline Object parseObject(const std::string& name, const fs::path& file, const f
     return o;
 }
 
-}  // namespace detail
+}   // namespace detail
 
 inline Scene load(const fs::path& manifest_path)
 {
@@ -769,7 +848,7 @@ inline Scene load(const fs::path& manifest_path)
 
     Scene scene;
     scene.manifest_file = fs::absolute(manifest_path);
-    
+
     scene.root = scene.manifest_file.parent_path().parent_path();
 
     const json manifest = detail::readJson(scene.manifest_file, "manifest");
@@ -789,10 +868,11 @@ inline Scene load(const fs::path& manifest_path)
     for (const auto& entry : manifest.at("objects"))
     {
         const std::string name = entry.get<std::string>();
-        const fs::path file = objectsDir / (name + ".json");
-        if (!fs::exists(file)) {
+        const fs::path file    = objectsDir / (name + ".json");
+        if (!fs::exists(file))
+        {
             errs.add("scene.json", "object '" + name + "' listed in the manifest but " +
-                                   file.string() + " does not exist");
+                                       file.string() + " does not exist");
             continue;
         }
         scene.objects.push_back(detail::parseObject(name, file, scene.root, errs));
@@ -808,9 +888,10 @@ inline Scene load(const fs::path& manifest_path)
         {
             if (std::find(placementIds.begin(), placementIds.end(), p.id) != placementIds.end())
                 errs.add(o.source_file.filename().string(),
-                         "duplicate placement id '" + p.id + "'. Placement ids are FRAME NAMES "
-                         "and must be unique across the whole scene -- a duplicate silently "
-                         "overwrites the other object's frame");
+                         "duplicate placement id '" + p.id +
+                             "'. Placement ids are FRAME NAMES "
+                             "and must be unique across the whole scene -- a duplicate silently "
+                             "overwrites the other object's frame");
             placementIds.push_back(p.id);
         }
     }
@@ -821,25 +902,27 @@ inline Scene load(const fs::path& manifest_path)
         if (!anchor)
         {
             std::string known;
-            for (const auto& p : placementIds) known += (known.empty() ? "" : ", ") + p;
+            for (const auto& p : placementIds)
+                known += (known.empty() ? "" : ", ") + p;
             errs.add("scene.json", "world_anchor '" + scene.anchor_frame +
-                                   "' is not a placement id. Known placements: " +
-                                   (known.empty() ? "(none)" : known));
+                                       "' is not a placement id. Known placements: " +
+                                       (known.empty() ? "(none)" : known));
         }
         else if (anchor->source != Source::Optitrack && anchor->source != Source::Static &&
                  anchor->source != Source::Constructed)
         {
-            
-            errs.add("scene.json", "world_anchor '" + scene.anchor_frame + "' has source '" +
-                                   toString(anchor->source) +
-                                   "'; the anchor must be 'optitrack', 'static' or 'constructed'");
+
+            errs.add("scene.json",
+                     "world_anchor '" + scene.anchor_frame + "' has source '" +
+                         toString(anchor->source) +
+                         "'; the anchor must be 'optitrack', 'static' or 'constructed'");
         }
         else if (anchor->source == Source::Optitrack && anchor->capture != Capture::Latched)
         {
             errs.add("scene.json", "world_anchor '" + scene.anchor_frame +
-                                   "' is continuous; the frame the whole scene is measured "
-                                   "against must be 'latched' or every object appears to "
-                                   "move whenever the anchor's tracking jitters");
+                                       "' is continuous; the frame the whole scene is measured "
+                                       "against must be 'latched' or every object appears to "
+                                       "move whenever the anchor's tracking jitters");
         }
         else if (anchor->source == Source::Constructed)
         {
@@ -847,12 +930,12 @@ inline Scene load(const fs::path& manifest_path)
             {
                 const Placement* src = scene.findPlacement(in);
                 if (src && src->capture != Capture::Latched)
-                    errs.add("scene.json", "world_anchor '" + scene.anchor_frame +
-                                           "' is built from '" + in +
-                                           "', which is continuous. The frame the whole scene is "
-                                           "measured against must be settled once, or every "
-                                           "object appears to move whenever the anchor's bodies "
-                                           "jitter");
+                    errs.add("scene.json",
+                             "world_anchor '" + scene.anchor_frame + "' is built from '" + in +
+                                 "', which is continuous. The frame the whole scene is "
+                                 "measured against must be settled once, or every "
+                                 "object appears to move whenever the anchor's bodies "
+                                 "jitter");
             }
         }
     }
@@ -865,7 +948,7 @@ inline Scene load(const fs::path& manifest_path)
 
             if (!p.parent_frame.empty() && !scene.findPlacement(p.parent_frame))
                 errs.add(where, "placement '" + p.id + "' names parent_frame '" + p.parent_frame +
-                                "', which is not a placement id");
+                                    "', which is not a placement id");
 
             const std::string kind = toString(p.source);   // "fused" or "constructed"
             for (const auto& in : p.inputs)
@@ -874,7 +957,7 @@ inline Scene load(const fs::path& manifest_path)
                 if (!src)
                 {
                     errs.add(where, kind + " placement '" + p.id + "' names input '" + in +
-                                    "', which is not a placement id");
+                                        "', which is not a placement id");
                 }
                 else if (in == p.id)
                 {
@@ -882,18 +965,19 @@ inline Scene load(const fs::path& manifest_path)
                 }
                 else if (src->source == Source::Fused || src->source == Source::Constructed)
                 {
-                    
+
                     errs.add(where, kind + " placement '" + p.id + "' takes input '" + in +
-                                    "', which is itself " + toString(src->source) +
-                                    "; deriving one derived placement from another is not "
-                                    "supported");
+                                        "', which is itself " + toString(src->source) +
+                                        "; deriving one derived placement from another is not "
+                                        "supported");
                 }
                 else if (p.source == Source::Constructed && src->source != Source::Optitrack)
                 {
-                    errs.add(where, "constructed placement '" + p.id + "' takes input '" + in +
-                                    "', whose source is '" + toString(src->source) +
-                                    "'. A construction reads each mount's measured face NORMAL, "
-                                    "so both inputs must be 'optitrack' placements");
+                    errs.add(where,
+                             "constructed placement '" + p.id + "' takes input '" + in +
+                                 "', whose source is '" + toString(src->source) +
+                                 "'. A construction reads each mount's measured face NORMAL, "
+                                 "so both inputs must be 'optitrack' placements");
                 }
             }
 
@@ -902,50 +986,68 @@ inline Scene load(const fs::path& manifest_path)
                 const Placement* a = scene.findPlacement(p.inputs[0]);
                 const Placement* b = scene.findPlacement(p.inputs[1]);
                 if (a && b && a->capture != b->capture)
-                    errs.add(where, "constructed placement '" + p.id + "' mixes a " +
-                                    toString(a->capture) + " input ('" + p.inputs[0] +
-                                    "') with a " + toString(b->capture) + " one ('" + p.inputs[1] +
-                                    "'). The chord between the two mounts is only a chord if both "
-                                    "ends describe the same instant");
+                    errs.add(where,
+                             "constructed placement '" + p.id + "' mixes a " +
+                                 toString(a->capture) + " input ('" + p.inputs[0] + "') with a " +
+                                 toString(b->capture) + " one ('" + p.inputs[1] +
+                                 "'). The chord between the two mounts is only a chord if both "
+                                 "ends describe the same instant");
             }
 
             if (p.source != Source::Projected) continue;
 
             // --- what a projection may correct ---
             const Placement* m = p.measured.empty() ? nullptr : scene.findPlacement(p.measured);
-            if (p.measured.empty()) {
+            if (p.measured.empty())
+            {
                 // already reported by parsePlacement
-            } else if (!m) {
-                errs.add(where, "projected placement '" + p.id + "' names measured '" +
-                                p.measured + "', which is not a placement id");
-            } else if (p.measured == p.id) {
-                errs.add(where, "projected placement '" + p.id + "' names itself as its own "
-                                "measurement");
-            } else if (m->source != Source::Optitrack) {
+            }
+            else if (!m)
+            {
+                errs.add(where, "projected placement '" + p.id + "' names measured '" + p.measured +
+                                    "', which is not a placement id");
+            }
+            else if (p.measured == p.id)
+            {
+                errs.add(where, "projected placement '" + p.id +
+                                    "' names itself as its own "
+                                    "measurement");
+            }
+            else if (m->source != Source::Optitrack)
+            {
                 errs.add(where, "projected placement '" + p.id + "' takes measured '" + p.measured +
-                                "', whose source is '" + toString(m->source) + "'. A projection "
-                                "corrects a RAW measurement, so it must name an 'optitrack' "
-                                "placement");
-            } else if (m->capture != Capture::Continuous) {
-                errs.add(where, "projected placement '" + p.id + "' takes measured '" + p.measured +
-                                "', which is latched. A latched pose is captured once and has no "
-                                "per-frame sample to project");
+                                    "', whose source is '" + toString(m->source) +
+                                    "'. A projection "
+                                    "corrects a RAW measurement, so it must name an 'optitrack' "
+                                    "placement");
+            }
+            else if (m->capture != Capture::Continuous)
+            {
+                errs.add(where,
+                         "projected placement '" + p.id + "' takes measured '" + p.measured +
+                             "', which is latched. A latched pose is captured once and has no "
+                             "per-frame sample to project");
             }
 
             // --- what a projection may hang off ---
             const Placement* par =
                 p.parent_frame.empty() ? nullptr : scene.findPlacement(p.parent_frame);
-            if (p.parent_frame == p.id) {
-                errs.add(where, "projected placement '" + p.id + "' names itself as its "
-                                "parent_frame");
-            } else if (par && par->source != Source::Projected &&
-                       !(par->source == Source::Optitrack &&
-                         par->capture == Capture::Continuous)) {
-                errs.add(where, "projected placement '" + p.id + "' hangs off parent_frame '" +
-                                p.parent_frame + "', whose source is '" + toString(par->source) +
-                                "' (" + toString(par->capture) + "). A projection reads its parent "
-                                "from the current mocap frame, so the parent must be a continuous "
-                                "optitrack placement or another projection");
+            if (p.parent_frame == p.id)
+            {
+                errs.add(where, "projected placement '" + p.id +
+                                    "' names itself as its "
+                                    "parent_frame");
+            }
+            else if (par && par->source != Source::Projected &&
+                     !(par->source == Source::Optitrack && par->capture == Capture::Continuous))
+            {
+                errs.add(where,
+                         "projected placement '" + p.id + "' hangs off parent_frame '" +
+                             p.parent_frame + "', whose source is '" + toString(par->source) +
+                             "' (" + toString(par->capture) +
+                             "). A projection reads its parent "
+                             "from the current mocap frame, so the parent must be a continuous "
+                             "optitrack placement or another projection");
             }
         }
     }
@@ -966,7 +1068,7 @@ inline Scene load(const fs::path& manifest_path)
             for (std::string cur = entry.second;;)
             {
                 const auto it = parentOf.find(cur);
-                if (it == parentOf.end()) break;          // reached a measured root: fine
+                if (it == parentOf.end()) break;   // reached a measured root: fine
 
                 if (cur == start)
                 {
@@ -974,14 +1076,15 @@ inline Scene load(const fs::path& manifest_path)
                     if (*std::min_element(path.begin(), path.end()) == start)
                     {
                         std::string chain;
-                        for (const auto& n : path) chain += n + " -> ";
+                        for (const auto& n : path)
+                            chain += n + " -> ";
                         errs.add(scene.findPlacement(start)->object_id,
                                  "projection chain is a cycle: " + chain + start +
-                                 ". Each projection must ultimately hang off a measured pose");
+                                     ". Each projection must ultimately hang off a measured pose");
                     }
                     break;
                 }
-                if (std::find(path.begin(), path.end(), cur) != path.end()) break;  // other cycle
+                if (std::find(path.begin(), path.end(), cur) != path.end()) break;   // other cycle
 
                 path.push_back(cur);
                 cur = it->second;
@@ -1010,16 +1113,16 @@ inline std::string describe(const Scene& scene)
             os << "[scene]     " << p.id << "  source=" << toString(p.source);
             if (p.source == Source::Optitrack || p.source == Source::ExpectedPose)
                 os << " capture=" << toString(p.capture);
-            if (p.source == Source::Optitrack)   os << " asset_id=" << p.asset_id;
-            if (!p.topic.empty())                os << " topic=" << p.topic;
-            if (!p.measured.empty())             os << " measured=" << p.measured;
+            if (p.source == Source::Optitrack) os << " asset_id=" << p.asset_id;
+            if (!p.topic.empty()) os << " topic=" << p.topic;
+            if (!p.measured.empty()) os << " measured=" << p.measured;
             if (!p.inputs.empty())
             {
                 os << " inputs=";
                 for (std::size_t i = 0; i < p.inputs.size(); ++i)
                     os << (i ? "," : "") << p.inputs[i];
             }
-            if (!p.parent_frame.empty())         os << " parent=" << p.parent_frame;
+            if (!p.parent_frame.empty()) os << " parent=" << p.parent_frame;
             os << "\n";
 
             if (p.joint)
@@ -1028,11 +1131,12 @@ inline std::string describe(const Scene& scene)
                 const auto mm = [](double m) { return frames::convert::mToMm(m); };
                 os << "[scene]         joint in "
                    << (p.parent_frame.empty() ? scene.anchor_frame : p.parent_frame)
-                   << ": axis through " << mm(g.axis_point_m.x()) << ", "
-                   << mm(g.axis_point_m.y()) << ", " << mm(g.axis_point_m.z()) << " mm"
+                   << ": axis through " << mm(g.axis_point_m.x()) << ", " << mm(g.axis_point_m.y())
+                   << ", " << mm(g.axis_point_m.z()) << " mm"
                    << "  along " << g.axis.x() << ", " << g.axis.y() << ", " << g.axis.z() << "\n"
                    << "[scene]         zero pose at " << mm(g.zero_origin_m.x()) << ", "
-                   << mm(g.zero_origin_m.y()) << ", " << mm(g.zero_origin_m.z()) << " mm"
+                   << mm(g.zero_origin_m.y()) << ", " << mm(g.zero_origin_m.z())
+                   << " mm"
                    // The orbit radius. Zero means the body's frame is ON the axis
                    // and its position does not move with the joint; large means it
                    // swings, and by how much.
@@ -1046,8 +1150,8 @@ inline std::string describe(const Scene& scene)
             if (p.construction)
             {
                 const twomount::Geometry& g = p.construction->geometry;
-                const auto mm  = [](double m) { return frames::convert::mToMm(m); };
-                const auto vec = [&](const frames::Vec3& v) {
+                const auto mm               = [](double m) { return frames::convert::mToMm(m); };
+                const auto vec              = [&](const frames::Vec3& v) {
                     return std::to_string(mm(v.x())) + ", " + std::to_string(mm(v.y())) + ", " +
                            std::to_string(mm(v.z())) + " mm";
                 };
@@ -1082,4 +1186,4 @@ inline std::string describe(const Scene& scene)
     return os.str();
 }
 
-}  // namespace scene
+}   // namespace scene

@@ -26,9 +26,9 @@ void NATNET_CALLCONV OnFrameReceived(sFrameOfMocapData* data, void* /*userData*/
 
         placement::BodyObservation obs;
         obs.asset_id = rb.ID;
-        obs.position = {rb.x, rb.y, rb.z};              // Motive streams metres
+        obs.position = {rb.x, rb.y, rb.z};   // Motive streams metres
         obs.rotation = frames::Quat(rb.qw, rb.qx, rb.qy, rb.qz);
-        obs.tracked  = (rb.params & 0x01) != 0;          // bit 0x01 == tracking valid
+        obs.tracked  = (rb.params & 0x01) != 0;   // bit 0x01 == tracking valid
 
         obs.mean_error = rb.MeanError;
         bodies.push_back(obs);
@@ -37,7 +37,7 @@ void NATNET_CALLCONV OnFrameReceived(sFrameOfMocapData* data, void* /*userData*/
     g_onFrame(bodies, stamp);
 }
 
-} // namespace
+}   // namespace
 
 bool start(const std::string& motiveIp, const std::string& localAddress, NatNetClient& client,
            FrameCallback onFrame)
@@ -63,8 +63,9 @@ bool start(const std::string& motiveIp, const std::string& localAddress, NatNetC
         return false;
     }
     std::printf("[backend/optitrack] Connected to Motive at %s; forwarding all rigid bodies "
-                "(the scene manifest selects which are used)\n", motiveIp.c_str());
+                "(the scene manifest selects which are used)\n",
+                motiveIp.c_str());
     return true;
 }
 
-} // namespace optitrack
+}   // namespace optitrack

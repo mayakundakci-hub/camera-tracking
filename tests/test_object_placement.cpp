@@ -25,15 +25,19 @@ public:
     TempScene()
     {
         static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        const auto stamp   = std::chrono::steady_clock::now().time_since_epoch().count();
         root_ = scene::fs::temp_directory_path() /
                 ("ct_place_test_" + std::to_string(stamp) + "_" + std::to_string(counter++));
         scene::fs::remove_all(root_);
         scene::fs::create_directories(root_ / "config" / "objects");
     }
 
-    ~TempScene() { std::error_code ec; scene::fs::remove_all(root_, ec); }
-    TempScene(const TempScene&) = delete;
+    ~TempScene()
+    {
+        std::error_code ec;
+        scene::fs::remove_all(root_, ec);
+    }
+    TempScene(const TempScene&)            = delete;
     TempScene& operator=(const TempScene&) = delete;
 
     void manifest(const std::string& b) const { write(root_ / "config" / "scene.json", b); }
@@ -128,12 +132,11 @@ void feed(Placer& placer, std::size_t count, const frames::Vec3& centre,
 frames::Vec3 jitter(std::size_t i)
 {
     const double s = 1e-4;   // 0.1 mm
-    return {s * std::sin(static_cast<double>(i) * 1.7),
-            s * std::sin(static_cast<double>(i) * 2.3),
+    return {s * std::sin(static_cast<double>(i) * 1.7), s * std::sin(static_cast<double>(i) * 2.3),
             s * std::sin(static_cast<double>(i) * 3.1)};
 }
 
-}  // namespace
+}   // namespace
 
 // ---------------------------------------------------------------
 // construction
@@ -326,8 +329,8 @@ TEST(Latch, CommitsTheMeanOfTheWindowNotOneSampleFromIt)
     ASSERT_TRUE(r.has_value());
     EXPECT_TRUE(r->latched);
     EXPECT_EQ(r->rejected, 0u);
-    EXPECT_NEAR(r->spread_m, half, 1e-9);                     // dispersion: unchanged by N
-    EXPECT_NEAR(r->std_err_m, half / std::sqrt(20.0), 1e-9);  // error bar: shrinks as sqrt(N)
+    EXPECT_NEAR(r->spread_m, half, 1e-9);                      // dispersion: unchanged by N
+    EXPECT_NEAR(r->std_err_m, half / std::sqrt(20.0), 1e-9);   // error bar: shrinks as sqrt(N)
 }
 
 TEST(Latch, AveragingActuallyBuysAccuracy)
@@ -359,7 +362,7 @@ TEST(Latch, AveragingActuallyBuysAccuracy)
     // The error that matters: distance from the committed pose to the truth,
     // which must sit inside a few standard errors -- and well inside one sigma.
     const frames::Vec3 got = reg.require(kMocapFrame, "rail_origin").translation();
-    const double error = (got - truth).norm();
+    const double error     = (got - truth).norm();
     EXPECT_LT(error, 4.0 * r->std_err_m);
     EXPECT_LT(error, kSigma) << "averaging did not beat a single sample";
 }
@@ -442,7 +445,7 @@ TEST(Latch, LatchesAfterMotionStopsWithoutNeedingARestart)
     feed(placer, 20, {2.0, 0.0, 0.0}, jitter);
 
     ASSERT_TRUE(placer.anchorPlaced());
-    EXPECT_NEAR(reg.require(kMocapFrame, "rail_origin").translation().x(), 2.1, 1e-4)
+    EXPECT_NEAR(reg.require(kMocapFrame, "rail_origin").translation().x(), 2.0, 1e-4)
         << "latched on a window that still contained the movement";
 }
 
@@ -572,15 +575,14 @@ TEST(Latch, AnUnlatchedAnchorLeavesEveryOtherPlacementUnreachable)
 
     // The rotor latches cleanly; the anchor never holds still.
     for (std::size_t i = 0; i < 20; ++i)
-        placer.onMocapFrame({body(1, frames::Vec3(1e-2 * static_cast<double>(i), 0, 0),
-                                  frames::Quat::Identity()),
-                             body(2, frames::Vec3(3.0, 0.0, 0.0) + jitter(i),
-                                  frames::Quat::Identity())},
-                            1.0 + static_cast<double>(i));
+        placer.onMocapFrame(
+            {body(1, frames::Vec3(1e-2 * static_cast<double>(i), 0, 0), frames::Quat::Identity()),
+             body(2, frames::Vec3(3.0, 0.0, 0.0) + jitter(i), frames::Quat::Identity())},
+            1.0 + static_cast<double>(i));
 
     ASSERT_FALSE(placer.anchorPlaced());
-    EXPECT_TRUE(reg.has(kMocapFrame, "rotor_opti"));            // measured
-    EXPECT_FALSE(reg.lookup("rail_origin", "rotor_opti").has_value());  // but not placeable
+    EXPECT_TRUE(reg.has(kMocapFrame, "rotor_opti"));                     // measured
+    EXPECT_FALSE(reg.lookup("rail_origin", "rotor_opti").has_value());   // but not placeable
     EXPECT_FALSE(placer.complete());
 }
 
@@ -661,7 +663,7 @@ TEST(Placement, MocapWorldOriginCancelsOutOfAnchorRelativeQueries)
     // system has no stored world origin, so it is worth a test.
     const frames::Vec3 railPos(1.0, 2.0, 0.0);
     const frames::Vec3 rotorPos(3.0, 2.0, 0.5);
-    const frames::Quat railRot = quat(0.3, frames::Vec3::UnitZ());
+    const frames::Quat railRot  = quat(0.3, frames::Vec3::UnitZ());
     const frames::Quat rotorRot = quat(-0.2, frames::Vec3(1, 1, 0));
 
     // M is T_mocapNew_mocapOld: the shift a recalibration applies to Motive's
@@ -678,15 +680,15 @@ TEST(Placement, MocapWorldOriginCancelsOutOfAnchorRelativeQueries)
             frames::compose(M, frames::make("mocapOld", "rotor_marker", rotorPos, rotorRot));
 
         placer.onMocapFrame({body(1, railInM.translation(), railInM.rotation()),
-                             body(2, rotorInM.translation(), rotorInM.rotation())}, 1.0);
+                             body(2, rotorInM.translation(), rotorInM.rotation())},
+                            1.0);
 
         return reg.require("rail_origin", "rotor_opti");
     };
 
-    const frames::Transform none = frames::make("mocapNew", "mocapOld",
-                                                frames::Vec3::Zero(), frames::Quat::Identity());
-    const frames::Transform shifted = frames::make("mocapNew", "mocapOld",
-                                                   {12.0, -7.0, 3.0},
+    const frames::Transform none =
+        frames::make("mocapNew", "mocapOld", frames::Vec3::Zero(), frames::Quat::Identity());
+    const frames::Transform shifted = frames::make("mocapNew", "mocapOld", {12.0, -7.0, 3.0},
                                                    quat(1.1, frames::Vec3(0.2, 0.9, -0.4)));
 
     const frames::Transform a = measure(none);
@@ -720,7 +722,7 @@ scene::Scene fusedRotor(const TempScene& t)
     return t.load();
 }
 
-}  // namespace
+}   // namespace
 
 TEST(Placement, FusedPlacementAveragesItsInputs)
 {
@@ -729,7 +731,8 @@ TEST(Placement, FusedPlacementAveragesItsInputs)
     Placer placer(fusedRotor(t), reg, LatchPolicy::immediate());
 
     placer.onMocapFrame({body(1, {1.000, 0, 0}, frames::Quat::Identity()),
-                         body(2, {1.010, 0, 0}, frames::Quat::Identity())}, 1.0);
+                         body(2, {1.010, 0, 0}, frames::Quat::Identity())},
+                        1.0);
 
     ASSERT_TRUE(reg.has("rail_origin", "rotor_opti"));
     EXPECT_NEAR(reg.require("rail_origin", "rotor_opti").translation().x(), 1.005, 1e-9);
@@ -779,11 +782,11 @@ TEST(Placement, FusedRotationAveragesWithoutQuaternionSignCancellation)
     Placer placer(fusedRotor(t), reg, LatchPolicy::immediate());
 
     const frames::Quat qa = quat(0.10, frames::Vec3::UnitZ());
-    frames::Quat qb = quat(0.20, frames::Vec3::UnitZ());
+    frames::Quat qb       = quat(0.20, frames::Vec3::UnitZ());
     qb = frames::Quat(-qb.w(), -qb.x(), -qb.y(), -qb.z());   // same rotation, flipped sign
 
-    placer.onMocapFrame({body(1, frames::Vec3::Zero(), qa),
-                         body(2, frames::Vec3::Zero(), qb)}, 1.0);
+    placer.onMocapFrame({body(1, frames::Vec3::Zero(), qa), body(2, frames::Vec3::Zero(), qb)},
+                        1.0);
 
     const auto T = reg.require("rail_origin", "rotor_opti");
     EXPECT_NEAR(frames::magnitudeOf(T).angle_rad, 0.15, 1e-6);   // midway, not cancelled
@@ -796,9 +799,11 @@ TEST(Placement, FusedPlacementIsLatchedOnceComputed)
     Placer placer(fusedRotor(t), reg, LatchPolicy::immediate());
 
     placer.onMocapFrame({body(1, {1.0, 0, 0}, frames::Quat::Identity()),
-                         body(2, {1.0, 0, 0}, frames::Quat::Identity())}, 1.0);
+                         body(2, {1.0, 0, 0}, frames::Quat::Identity())},
+                        1.0);
     placer.onMocapFrame({body(1, {9.0, 0, 0}, frames::Quat::Identity()),
-                         body(2, {9.0, 0, 0}, frames::Quat::Identity())}, 2.0);
+                         body(2, {9.0, 0, 0}, frames::Quat::Identity())},
+                        2.0);
 
     EXPECT_NEAR(reg.require("rail_origin", "rotor_opti").translation().x(), 1.0, 1e-9);
 }
@@ -823,8 +828,9 @@ TEST(Latch, FusedPlacementInheritsItsInputsGate)
     EXPECT_FALSE(reg.has("rail_origin", "rotor_opti")) << "fused from half its inputs";
 
     for (std::size_t i = 0; i < 20; ++i)
-        placer.onMocapFrame({body(2, frames::Vec3(1.02, 0, 0) + jitter(i), frames::Quat::Identity())},
-                            100.0 + static_cast<double>(i));
+        placer.onMocapFrame(
+            {body(2, frames::Vec3(1.02, 0, 0) + jitter(i), frames::Quat::Identity())},
+            100.0 + static_cast<double>(i));
 
     ASSERT_TRUE(reg.has("rail_origin", "rotor_opti"));
     EXPECT_NEAR(reg.require("rail_origin", "rotor_opti").translation().x(), 1.01, 1e-4);
@@ -847,7 +853,8 @@ TEST(Placement, StatusNamesWhatItIsWaitingFor)
     EXPECT_NE(s.find("rotor_opti"), std::string::npos);
 
     placer.onMocapFrame({body(1, {1, 0, 0}, frames::Quat::Identity()),
-                         body(2, {2, 0, 0}, frames::Quat::Identity())}, 1.0);
+                         body(2, {2, 0, 0}, frames::Quat::Identity())},
+                        1.0);
     placer.onExpectedPose("rotor_expected", {2, 0, 0}, frames::Quat::Identity(), 1.0);
 
     EXPECT_TRUE(placer.complete());
@@ -889,7 +896,7 @@ jointproj::RevoluteJoint j9Joint()
 {
     jointproj::RevoluteJoint j;
     j.axis_point_m  = {0.0, 0.270, 0.0};
-    j.zero_origin_m = {0.0, 0.270, 0.0};      // on the axis
+    j.zero_origin_m = {0.0, 0.270, 0.0};   // on the axis
     j.axis          = frames::Vec3::UnitZ();
     j.lower_rad     = -1.5707;
     j.upper_rad     = 1.5707;
@@ -898,10 +905,9 @@ jointproj::RevoluteJoint j9Joint()
 
 scene::Scene handChain(const TempScene& t, bool listJ9First = false)
 {
-    t.manifest(listJ9First
-        ? R"({"world_anchor": "rail_origin",
+    t.manifest(listJ9First ? R"({"world_anchor": "rail_origin",
               "objects": ["rail", "hand_j9", "hand_j8", "hand_base"]})"
-        : R"({"world_anchor": "rail_origin",
+                           : R"({"world_anchor": "rail_origin",
               "objects": ["rail", "hand_base", "hand_j8", "hand_j9"]})");
 
     t.object("rail", R"({
@@ -974,7 +980,7 @@ std::vector<BodyObservation> handBodies(const HandPose& h)
             body(3, h.j9.translation(), h.j9.rotation())};
 }
 
-}  // namespace
+}   // namespace
 
 TEST(Placement, ProjectionRecoversBothJointAngles)
 {
@@ -1060,7 +1066,8 @@ TEST(Placement, ProjectionUsesThisFrameNotTheLatestPose)
     // Frame 2: the hand has MOVED and J9's body is gone.
     const HandPose moved = handAt(0.90, 0.15, basePose(2.0));
     placer.onMocapFrame({body(1, moved.base.translation(), moved.base.rotation()),
-                         body(2, moved.j8.translation(), moved.j8.rotation())}, 2.0);
+                         body(2, moved.j8.translation(), moved.j8.rotation())},
+                        2.0);
 
     const auto est = placer.jointEstimates();
 
@@ -1097,7 +1104,8 @@ TEST(Placement, ProjectionDistinguishesTheTwoDropoutKinds)
     const HandPose h = handAt(0.2, 0.3, basePose());
 
     placer.onMocapFrame({body(1, h.base.translation(), h.base.rotation()),
-                         body(2, h.j8.translation(), h.j8.rotation(), /*tracked=*/false)}, 1.0);
+                         body(2, h.j8.translation(), h.j8.rotation(), /*tracked=*/false)},
+                        1.0);
     const std::string untracked = placer.jointEstimate("j8_projected")->skip_reason;
 
     placer.onMocapFrame({body(1, h.base.translation(), h.base.rotation())}, 2.0);
@@ -1121,7 +1129,8 @@ TEST(Placement, AMissingInputCascadesDownTheChain)
 
     const HandPose h = handAt(0.2, 0.3, basePose());
     placer.onMocapFrame({body(1, h.base.translation(), h.base.rotation()),
-                         body(3, h.j9.translation(), h.j9.rotation())}, 1.0);
+                         body(3, h.j9.translation(), h.j9.rotation())},
+                        1.0);
 
     const auto est = placer.jointEstimates();
     EXPECT_FALSE(est.at("j8_projected").estimated);
@@ -1167,7 +1176,7 @@ TEST(Placement, ProjectedAnglesDoNotDependOnTheMocapWorldOrigin)
     Placer plain(handChain(a), regA, LatchPolicy::immediate());
     Placer moved(handChain(b), regB, LatchPolicy::immediate());
 
-    const HandPose h = handAt(0.77, -1.10, basePose());
+    const HandPose h          = handAt(0.77, -1.10, basePose());
     const frames::Transform M = frames::make("optitrack_world", "optitrack_world_old",
                                              {-7.3, 2.9, 0.44}, quat(2.4, {0.5, 0.5, 0.7071}));
 
@@ -1225,7 +1234,8 @@ TEST(Placement, ProjectionNeedsNoAnchor)
     const HandPose h = handAt(0.44, 0.0, basePose());
     // Asset 9 is never streamed, so the anchor is never placed.
     placer.onMocapFrame({body(1, h.base.translation(), h.base.rotation()),
-                         body(2, h.j8.translation(), h.j8.rotation())}, 1.0);
+                         body(2, h.j8.translation(), h.j8.rotation())},
+                        1.0);
 
     const auto e = placer.jointEstimate("j8_projected");
     ASSERT_TRUE(e.has_value());
@@ -1254,8 +1264,7 @@ TEST(Placement, GeometryErrorSurvivesTheJointBeingUsed)
         // in mocap's. Pushing along mocap Z instead would land partly radial and
         // the expected values below would be wrong for a reason unrelated to the
         // code under test.
-        const frames::Vec3 push =
-            0.004 * (h.base.rotation() * frames::Vec3::UnitZ());
+        const frames::Vec3 push = 0.004 * (h.base.rotation() * frames::Vec3::UnitZ());
 
         placer.onMocapFrame({body(1, h.base.translation(), h.base.rotation()),
                              body(2, h.j8.translation() + push, h.j8.rotation()),
@@ -1270,7 +1279,6 @@ TEST(Placement, GeometryErrorSurvivesTheJointBeingUsed)
         EXPECT_NEAR(e->theta_rad, theta8, 1e-9) << "theta8 = " << theta8;
     }
 }
-
 
 // ---------------------------------------------------------------
 // constructed placements
@@ -1287,8 +1295,8 @@ TEST(Placement, GeometryErrorSurvivesTheJointBeingUsed)
 
 namespace {
 
-constexpr double kRotorRadius = 0.7;     // spin axis to a mount's body origin
-constexpr double kRotorFaceX  = 1.83;    // part origin to the mounted face
+constexpr double kRotorRadius = 0.7;    // spin axis to a mount's body origin
+constexpr double kRotorFaceX  = 1.83;   // part origin to the mounted face
 
 // A rotor mount's body origin in the PART's frame: +X down the spin axis,
 // clocking measured about +X starting from +Z.
@@ -1307,15 +1315,14 @@ std::string vec3(const frames::Vec3& v)
 
 std::string mm3(const frames::Vec3& v)
 {
-    return "[" + detail::fixed(v.x() * 1000.0, 4) + ", " + detail::fixed(v.y() * 1000.0, 4) +
-           ", " + detail::fixed(v.z() * 1000.0, 4) + "]";
+    return "[" + detail::fixed(v.x() * 1000.0, 4) + ", " + detail::fixed(v.y() * 1000.0, 4) + ", " +
+           detail::fixed(v.z() * 1000.0, 4) + "]";
 }
 
 // A part carrying two bodies, with a static identity anchor so that anchor
 // coordinates and mocap coordinates coincide and the arithmetic stays readable.
-scene::Scene twoBodyPart(const TempScene& t, const frames::Vec3& mountA,
-                         const frames::Vec3& mountB, const frames::Vec3& normalInPart,
-                         const char* capture = "continuous")
+scene::Scene twoBodyPart(const TempScene& t, const frames::Vec3& mountA, const frames::Vec3& mountB,
+                         const frames::Vec3& normalInPart, const char* capture = "continuous")
 {
     t.manifest(R"({"world_anchor": "rail_origin", "objects": ["rail", "part"]})");
     t.object("rail", R"({
@@ -1324,17 +1331,23 @@ scene::Scene twoBodyPart(const TempScene& t, const frames::Vec3& mountA,
     t.object("part", std::string(R"({
         "id": "part",
         "placements": [
-            {"id": "body_a", "source": "optitrack", "capture": ")") + capture + R"(",
+            {"id": "body_a", "source": "optitrack", "capture": ")") +
+                         capture + R"(",
              "asset_id": 2, "compare": false, "visible": false},
-            {"id": "body_b", "source": "optitrack", "capture": ")" + capture + R"(",
+            {"id": "body_b", "source": "optitrack", "capture": ")" +
+                         capture + R"(",
              "asset_id": 3, "compare": false, "visible": false},
-            {"id": "part_opti", "source": "constructed", "capture": ")" + capture + R"(",
+            {"id": "part_opti", "source": "constructed", "capture": ")" +
+                         capture + R"(",
              "inputs": ["body_a", "body_b"],
              "construction": {
                 "normal_axis": [0.0, 0.0, 1.0],
-                "normal_in_part": )" + vec3(normalInPart) + R"(,
-                "mount_a": {"position_mm": )" + mm3(mountA) + R"(},
-                "mount_b": {"position_mm": )" + mm3(mountB) + R"(}}}
+                "normal_in_part": )" +
+                         vec3(normalInPart) + R"(,
+                "mount_a": {"position_mm": )" +
+                         mm3(mountA) + R"(},
+                "mount_b": {"position_mm": )" +
+                         mm3(mountB) + R"(}}}
         ]})");
     return t.load();
 }
@@ -1348,16 +1361,14 @@ frames::Transform partTruth()
 
 // The two bodies Motive would stream: each seated with its own +Z along
 // `normalInPart`, plus an arbitrary spin about that which nothing may depend on.
-std::vector<BodyObservation> partBodies(const frames::Transform& truth,
-                                        const frames::Vec3& mountA, const frames::Vec3& mountB,
-                                        const frames::Vec3& normalInPart,
-                                        double spinA = 0.0, double spinB = 0.0)
+std::vector<BodyObservation> partBodies(const frames::Transform& truth, const frames::Vec3& mountA,
+                                        const frames::Vec3& mountB,
+                                        const frames::Vec3& normalInPart, double spinA = 0.0,
+                                        double spinB = 0.0)
 {
     const frames::Quat align =
         frames::Quat::FromTwoVectors(frames::Vec3::UnitZ(), normalInPart.normalized());
-    const auto rot = [&](double spin) {
-        return quat(spin, normalInPart) * align;
-    };
+    const auto rot = [&](double spin) { return quat(spin, normalInPart) * align; };
 
     const frames::Transform a =
         frames::compose(truth, frames::make(truth.from, "a", mountA, rot(spinA)));
@@ -1375,7 +1386,7 @@ void expectMatchesTruth(const frames::Transform& got, const frames::Transform& t
     EXPECT_NEAR(got.rotation().angularDistance(truth.rotation()), 0.0, tol);
 }
 
-}  // namespace
+}   // namespace
 
 TEST(Placement, ConstructionRecoversARotorPoseFromTwoMounts)
 {
@@ -1454,7 +1465,7 @@ TEST(Placement, ConstructionWaitsForBothBodiesAndNamesTheMissingOne)
     Placer placer(twoBodyPart(t, a, b, frames::Vec3::UnitZ()), reg, LatchPolicy::immediate());
 
     auto bodies = partBodies(partTruth(), a, b, frames::Vec3::UnitZ());
-    bodies.pop_back();                       // body B never arrives
+    bodies.pop_back();   // body B never arrives
     placer.onMocapFrame(bodies, 1.0);
 
     EXPECT_FALSE(reg.lookup("rail_origin", "part_opti").has_value());
@@ -1532,9 +1543,9 @@ TEST(Placement, AnUnseatedBodyShowsInTheNormalDisagreement)
     auto bodies = partBodies(partTruth(), a, b, frames::Vec3::UnitZ());
 
     // Rock body B about the chord by half a degree, leaving its position alone.
-    constexpr double kRock = 0.5 * kPi / 180.0;
+    constexpr double kRock      = 0.5 * kPi / 180.0;
     const frames::Vec3 chordHat = (bodies[1].position - bodies[0].position).normalized();
-    bodies[1].rotation = quat(kRock, chordHat) * bodies[1].rotation;
+    bodies[1].rotation          = quat(kRock, chordHat) * bodies[1].rotation;
 
     placer.onMocapFrame(bodies, 1.0);
 
@@ -1565,9 +1576,8 @@ TEST(Placement, ConstructionIsLatchedOnceComputed)
 
     // Now move the whole part half a metre. Its bodies are latched, so nothing
     // downstream of them may move either.
-    const frames::Transform moved =
-        frames::make("mocap", "part", truth.translation() + frames::Vec3(0.5, 0.0, 0.0),
-                     truth.rotation());
+    const frames::Transform moved = frames::make(
+        "mocap", "part", truth.translation() + frames::Vec3(0.5, 0.0, 0.0), truth.rotation());
     placer.onMocapFrame(partBodies(moved, a, b, frames::Vec3::UnitZ()), 2.0);
 
     const auto again = reg.lookup("rail_origin", "part_opti");
@@ -1607,6 +1617,6 @@ TEST(Placement, ConstructedPoseDoesNotDependOnTheMocapWorldOrigin)
     const frames::Transform moved = run(true);
 
     EXPECT_NEAR((plain.translation() - moved.translation()).norm(), 0.0, 1e-12);
-    EXPECT_NEAR(frames::magnitudeOf(frames::compose(frames::inverse(plain), moved)).angle_rad,
-                0.0, 1e-12);
+    EXPECT_NEAR(frames::magnitudeOf(frames::compose(frames::inverse(plain), moved)).angle_rad, 0.0,
+                1e-12);
 }

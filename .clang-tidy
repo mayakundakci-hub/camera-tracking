@@ -1,0 +1,37 @@
+# Static analysis, advisory: nothing here is promoted to an error, because the point
+# is to read the findings, not to block a build on a heuristic. Run it with
+#   python scripts/lint.py --tidy
+# which points clang-tidy at a preset's compile_commands.json.
+#
+# The check list mirrors the sibling Munera repos (mulib, ludus) so a header that
+# moves between projects is judged the same way, minus four checks that fire on
+# patterns this code uses on purpose -- each disabled with its reason.
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions
+
+# -modernize-use-trailing-return-type
+#     Pure style, and the opposite of the style in this tree.
+# -modernize-avoid-c-arrays
+#     `static const char* kKnown[]` is the established shape for the loader's
+#     known-key lists in nodes/common/scene_config.hpp.
+# -bugprone-easily-swappable-parameters
+#     Fires on every (x, y, z) and (position, rotation) in frames/ and placement/.
+#     The frame-typed transforms are what actually guard those call sites.
+# -bugprone-narrowing-conversions
+#     double -> float at the render boundary is deliberate and explicit; Qt's scene
+#     types are float and the measurement types are double.
+
+# Only this project's own headers. Without the filter, every warning in Qt, eCAL,
+# Eigen, protobuf and the vcpkg tree is reported too, and the real findings are lost.
+HeaderFilterRegex: "(nodes|backend|frontend|middleware|launcher|tests)[/\\\\]"
+
+WarningsAsErrors: ""
+FormatStyle: file

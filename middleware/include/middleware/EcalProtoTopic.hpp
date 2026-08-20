@@ -10,4 +10,4 @@ using EcalProtoPublisher = arena::transport::ecal::ProtobufCallbackPublisher<T>;
 template <typename T>
 using EcalProtoSubscriber = arena::transport::ecal::ProtobufCallbackSubscriber<T>;
 
-} // namespace middleware
+}   // namespace middleware
