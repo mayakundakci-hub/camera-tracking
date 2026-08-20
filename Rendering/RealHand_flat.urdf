@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flattened by hand from RealHand.urdf's xacro:RealHand macro (prefix="", color substituted
+     literally) so ludus can import it directly -- the macro itself is never called anywhere in
+     the Rendering tree, so flatten_xacro.py has nothing to expand it against.
+
+     Joint names were NOT taken verbatim from the macro: it names its first joint
+     "${prefix}_hand_base_to_${prefix}_hand_link_1" (missing "_link"), and puts ${prefix} on
+     BOTH sides of every joint name, while RobotScene::setJointByName only prepends the arm
+     prefix once, at the front (see RobotScene.cpp's kHandJoints / setJointByName). Renamed to
+     match hand_only.urdf's bare convention exactly (hand_link_base_to_hand_link_1, etc.) so the
+     camera-measured angles on hand/joint_state_measured actually reach these joints instead of
+     being silently skipped as "joint absent in this URDF".
+
+     Everything else -- mesh files, joint origins, axes, limits -- is copied unchanged from
+     RealHand.urdf, i.e. this is the real FADO EOAT geometry (Rendering/FADO/EOAT_*.STL), not
+     the mock hand hand_only.urdf draws. -->
+<robot name="RealHand-flat">
+  <link name="hand_link_base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_base.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.85 0.85 0.85 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_base.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="hand_link_1">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.85 0.85 0.85 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_1.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="hand_link_base_to_hand_link_1" type="revolute">
+    <origin xyz="0 44.67 0" rpy="0 0 0" />
+    <parent link="hand_link_base" />
+    <child link="hand_link_1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.6" upper="1.6" effort="0" velocity="0" />
+  </joint>
+
+  <link name="hand_link_2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.85 0.85 0.85 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_hand_link_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="hand_link_1_to_hand_link_2" type="revolute">
+    <origin xyz="0 270 0" rpy="0 0 0" />
+    <parent link="hand_link_1" />
+    <child link="hand_link_2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.6" upper="1.6" effort="0" velocity="0" />
+  </joint>
+
+  <link name="tool_rotate">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_tool_rotate.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="FADO/EOAT_tool_rotate.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="hand_link_2_to_tool_rotate" type="revolute">
+    <origin xyz="0 61 56.75" rpy="0 0 0" />
+    <parent link="hand_link_2" />
+    <child link="tool_rotate" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.1416" upper="3.1416" effort="0" velocity="0" />
+  </joint>
+
+  <link name="tool_0" />
+
+  <joint name="tool_rotate_to_tool_0" type="fixed">
+    <origin xyz="0 53.652 0" rpy="0 0 0" />
+    <parent link="tool_rotate" />
+    <child link="tool_0" />
+    <axis xyz="0 0 0" />
+  </joint>
+</robot>

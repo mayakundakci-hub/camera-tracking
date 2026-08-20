@@ -1,0 +1,30 @@
+Upstream sets ABSL_DEFAULT_LINKOPTS to "-ignore:4221" whenever
+CMAKE_CXX_COMPILER_ID is "MSVC", to silence link.exe's benign LNK4221
+("no public symbols") warning. absl_cc_library() applies this to every
+target's link options, including header-only INTERFACE libraries, so it
+ends up baked into INTERFACE_LINK_LIBRARIES in the exported
+abslTargets.cmake and propagates to every consumer that links against
+abseil.
+
+vcpkg builds this port with real cl.exe (CMAKE_CXX_COMPILER_ID is
+"MSVC" there), but a consumer that links with clang++ using the
+GNU-style driver (not clang-cl) targeting the MSVC ABI has no such
+passthrough for MSVC-style dashed linker flags: it rejects
+"-ignore:4221" as an unknown compiler argument, so any executable that
+transitively depends on abseil fails to link.
+
+The flag only suppresses a cosmetic warning, so drop it entirely
+rather than trying to strip it back out of the generated CMake config
+after the fact.
+
+--- a/absl/copts/AbseilConfigureCopts.cmake
++++ b/absl/copts/AbseilConfigureCopts.cmake
+@@ -96,7 +96,7 @@
+ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+   set(ABSL_DEFAULT_COPTS "${ABSL_MSVC_FLAGS}")
+   set(ABSL_TEST_COPTS "${ABSL_MSVC_TEST_FLAGS}")
+-  set(ABSL_DEFAULT_LINKOPTS "${ABSL_MSVC_LINKOPTS}")
++  set(ABSL_DEFAULT_LINKOPTS "")
+ else()
+   message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER}.  Building with no default flags")
+   set(ABSL_DEFAULT_COPTS "")

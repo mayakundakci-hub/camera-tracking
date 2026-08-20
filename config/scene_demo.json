@@ -1,0 +1,12 @@
+{
+  "_comment": "Renderer demo. Nothing in this manifest is measured: every placement is 'static', 'joint_state' at the URDF's home pose, or fed by the simulated FANUC publisher. It exists so the render path, the config path and the comparison path can be exercised with no Motive, no cameras and no robot bridge -- see README, 'Demo: the renderer with no hardware'.",
+
+  "_not_a_measurement": "A pose in this scene is a drawing, not an observation. Do not read a delta here as an error in anything; the only 'error' the stub pair reports is the distance between a fixed point and a circle that was generated to travel around it.",
+
+  "world_anchor": "p2d2_mount",
+
+  "objects": [
+    "p2d2",
+    "stub_demo"
+  ]
+}

@@ -1,20 +1,4 @@
-// =============================================================
-// cameratracking  (launcher)
-//
-// Spawns backend.exe + frontend.exe + logger_node.py together, and
-// tears all three down when frontend.exe exits (closing the window is
-// the user-facing signal that the session is over).
-//
-// Each child gets its own console process group (CREATE_NEW_PROCESS_GROUP)
-// so it can be signalled individually via CTRL_BREAK_EVENT without also
-// hitting the launcher itself or the other children -- Windows only
-// supports targeting one specific process group with CTRL_BREAK; CTRL_C
-// can only be broadcast to every process sharing the console. backend.exe
-// relies on eCAL's own console-ctrl handling to turn CTRL_BREAK into
-// eCAL::Ok() == false; logger_node.py has an explicit SIGBREAK handler
-// for the same reason (see logger_node.py). If a child doesn't exit
-// within the grace period, it's force-terminated as a fallback.
-// =============================================================
+// cameratracking: starts the session and guarantees it ends
 
 #include <windows.h>
 
@@ -29,34 +13,102 @@ namespace fs = std::filesystem;
 #define CAMERA_TRACKING_SOURCE_DIR "."
 #endif
 
+namespace {
+
 struct Child {
-    const char* name;
+    const char*         name;
     PROCESS_INFORMATION pi{};
 };
 
-static bool spawn(std::string cmdLine, const std::string& workDir, PROCESS_INFORMATION& pi)
+HANDLE g_job = nullptr;
+
+std::vector<Child>* g_children = nullptr;
+volatile LONG       g_shuttingDown = 0;
+
+HANDLE createKillOnCloseJob()
+{
+    HANDLE job = CreateJobObjectA(nullptr, nullptr);
+    if (job == nullptr) return nullptr;
+
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)))
+    {
+        CloseHandle(job);
+        return nullptr;
+    }
+    return job;
+}
+
+bool spawn(std::string cmdLine, const std::string& workDir, PROCESS_INFORMATION& pi)
 {
     STARTUPINFOA si{};
     si.cb = sizeof(si);
-    return CreateProcessA(nullptr, cmdLine.data(), nullptr, nullptr, FALSE,
-                           CREATE_NEW_PROCESS_GROUP, nullptr, workDir.c_str(), &si, &pi) != 0;
+
+    if (CreateProcessA(nullptr, cmdLine.data(), nullptr, nullptr, FALSE,
+                       CREATE_NEW_PROCESS_GROUP | CREATE_SUSPENDED, nullptr, workDir.c_str(),
+                       &si, &pi) == 0)
+        return false;
+
+    if (g_job != nullptr && !AssignProcessToJobObject(g_job, pi.hProcess))
+    {
+        std::fprintf(stderr, "[cameratracking] could not put pid %lu under the job object "
+                              "(err %lu) -- refusing to start it, since it could outlive this "
+                              "launcher and publish alongside the next one\n",
+                     pi.dwProcessId, GetLastError());
+        TerminateProcess(pi.hProcess, 1);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        pi = PROCESS_INFORMATION{};
+        return false;
+    }
+
+    ResumeThread(pi.hThread);
+    return true;
 }
 
-// Ask nicely first (CTRL_BREAK, lets backend/logger flush + shut down
-// cleanly), then force-kill if it doesn't exit within the grace period.
-static void stopChild(const Child& c, DWORD graceMs = 3000)
+void stopChild(const Child& c, DWORD graceMs = 3000)
 {
     if (c.pi.hProcess == nullptr) return;
+
     GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, c.pi.dwProcessId);
     if (WaitForSingleObject(c.pi.hProcess, graceMs) != WAIT_OBJECT_0)
     {
-        std::fprintf(stderr, "[cameratracking] %s didn't exit gracefully, force-terminating\n", c.name);
+        std::fprintf(stderr, "[cameratracking] %s didn't exit gracefully, force-terminating\n",
+                     c.name);
         TerminateProcess(c.pi.hProcess, 1);
         WaitForSingleObject(c.pi.hProcess, 2000);
     }
     CloseHandle(c.pi.hProcess);
     CloseHandle(c.pi.hThread);
 }
+
+void stopAll()
+{
+    if (InterlockedExchange(&g_shuttingDown, 1) != 0) return;   // handler may re-enter
+    if (g_children == nullptr) return;
+    for (auto it = g_children->rbegin(); it != g_children->rend(); ++it) stopChild(*it);
+}
+
+BOOL WINAPI consoleHandler(DWORD signal)
+{
+    switch (signal)
+    {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+        case CTRL_LOGOFF_EVENT:
+        case CTRL_SHUTDOWN_EVENT:
+            std::printf("[cameratracking] shutdown requested -- stopping children\n");
+            std::fflush(stdout);
+            stopAll();
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
+}  // namespace
 
 int main()
 {
@@ -65,7 +117,17 @@ int main()
     const fs::path exeDir    = fs::path(selfPathBuf).parent_path();
     const fs::path sourceDir = CAMERA_TRACKING_SOURCE_DIR;
 
-    std::vector<Child> children;  // stopped in reverse order on shutdown
+    g_job = createKillOnCloseJob();
+    if (g_job == nullptr)
+        std::fprintf(stderr, "[cameratracking] WARNING: no job object (err %lu). Children will "
+                              "still be stopped on a clean exit, but killing this launcher "
+                              "outright would orphan them -- and an orphaned backend publishes "
+                              "alongside the next run rather than failing visibly.\n",
+                     GetLastError());
+
+    std::vector<Child> children;   // stopped in reverse order on shutdown
+    g_children = &children;
+    SetConsoleCtrlHandler(consoleHandler, TRUE);
 
     PROCESS_INFORMATION backendPi{};
     if (!spawn((exeDir / "backend.exe").string(), sourceDir.string(), backendPi))
@@ -77,36 +139,60 @@ int main()
     std::printf("[cameratracking] backend.exe started (pid %lu)\n", backendPi.dwProcessId);
 
     PROCESS_INFORMATION loggerPi{};
-    const std::string loggerScript = (sourceDir / "nodes" / "logger_node" / "logger_node.py").string();
-    if (spawn("python \"" + loggerScript + "\"", sourceDir.string(), loggerPi))
+    if (spawn((exeDir / "logger_node.exe").string(), sourceDir.string(), loggerPi))
     {
         children.push_back({"logger_node", loggerPi});
-        std::printf("[cameratracking] logger_node.py started (pid %lu)\n", loggerPi.dwProcessId);
+        std::printf("[cameratracking] logger_node.exe started (pid %lu)\n", loggerPi.dwProcessId);
     }
     else
     {
-        std::fprintf(stderr, "[cameratracking] WARNING: failed to start logger_node.py "
-                              "(is 'python' on PATH?) -- continuing without CSV logging\n");
+        std::fprintf(stderr, "[cameratracking] WARNING: failed to start logger_node.exe "
+                              "(target not built?) -- continuing without CSV logging\n");
     }
 
     PROCESS_INFORMATION frontendPi{};
     if (!spawn((exeDir / "frontend.exe").string(), exeDir.string(), frontendPi))
     {
         std::fprintf(stderr, "[cameratracking] failed to start frontend.exe\n");
-        for (auto it = children.rbegin(); it != children.rend(); ++it) stopChild(*it);
+        stopAll();
         return 1;
     }
-    std::printf("[cameratracking] frontend.exe started (pid %lu) -- close its window to end the session\n",
+    children.push_back({"frontend", frontendPi});
+    std::printf("[cameratracking] frontend.exe started (pid %lu) -- close its window, or Ctrl+C "
+                "here, to end the session\n",
                 frontendPi.dwProcessId);
 
-    // frontend is the user-facing process; its exit is the signal the
-    // session is over.
-    WaitForSingleObject(frontendPi.hProcess, INFINITE);
-    CloseHandle(frontendPi.hProcess);
-    CloseHandle(frontendPi.hThread);
+    std::vector<HANDLE> handles;
+    handles.reserve(children.size());
+    for (const Child& c : children) handles.push_back(c.pi.hProcess);
 
-    std::printf("[cameratracking] frontend exited, shutting down backend + logger\n");
-    for (auto it = children.rbegin(); it != children.rend(); ++it) stopChild(*it);
+    const DWORD waited = WaitForMultipleObjects(static_cast<DWORD>(handles.size()), handles.data(),
+                                                FALSE /* any */, INFINITE);
+    const std::size_t firstOut =
+        (waited >= WAIT_OBJECT_0 && waited < WAIT_OBJECT_0 + handles.size())
+            ? static_cast<std::size_t>(waited - WAIT_OBJECT_0)
+            : 0;
 
-    return 0;
+    DWORD exitCode = 0;
+    GetExitCodeProcess(children[firstOut].pi.hProcess, &exitCode);
+
+    constexpr DWORD kRecalibrateExitCode = 2;
+    const bool byFrontend = std::string(children[firstOut].name) == "frontend";
+
+    if (byFrontend && exitCode == kRecalibrateExitCode)
+        std::printf("[cameratracking] SESSION ABANDONED at the placement review gate -- "
+                     "the operator rejected the latched placements. Recalibrate the robot "
+                     "before rerunning; this session produced no validation data worth "
+                     "keeping.\n");
+    else if (byFrontend)
+        std::printf("[cameratracking] frontend exited (code %lu), shutting down the rest\n",
+                    exitCode);
+    else
+        std::fprintf(stderr, "[cameratracking] %s exited FIRST (code %lu) -- ending the session. "
+                              "It was not supposed to stop before the frontend, so treat the last "
+                              "data as suspect rather than as a completed run.\n",
+                     children[firstOut].name, exitCode);
+
+    stopAll();
+    return static_cast<int>(exitCode);
 }

@@ -1,0 +1,11 @@
+ludus provides CMake targets:
+
+    find_package(Ludus CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE Ludus::Ludus)
+
+  Feature-gated components ("occt", "robot") are exposed through the same
+  package config; see share/ludus/LudusTargets.cmake for the targets present
+  in this installation.
+
+ludus also ships the canonical .NET, Python, and Rust SDK sources under
+share/ludus/sdk; see share/ludus/sdk-layout.json for the layout.

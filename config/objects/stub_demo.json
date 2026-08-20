@@ -1,0 +1,39 @@
+{
+  "id": "stub_demo",
+  "display_name": "Stub target (demo)",
+
+  "_comment": "Demo only, and listed only by config/scene_demo.json. Two independent claims about one object, neither of which needs hardware: where it is bolted, and where the simulated FANUC publisher says it is. Both are comparable, so the pair publishes a delta -- the placement and comparison path end to end with nothing plugged in.",
+
+  "_the_motion": "backend/src/fanuc.cpp generates a 0.5 m circle at 1.0 m height, one lap per 8 s, yawing about Z so the part faces along its travel. It publishes on 'pose_fanuc' whenever fanuc.stub_enabled is true in config.json.",
+
+  "visual_mesh": "Rendering/Hand/P2D2_hand_assembled.STL",
+  "mesh_scale": 1.0,
+
+  "placements": [
+    {
+      "_comment": "Where the lap begins -- the stub's own pose at angle zero. The delta reads near zero as the target comes back around to this point and grows to the full 1 m diameter half a lap later, which is the point: a delta that visibly moves proves the comparison path is live rather than printing a constant.",
+
+      "id": "stub_demo_nominal",
+      "source": "static",
+      "pose": {
+        "position_mm": [500.0, 0.0, 1000.0]
+      },
+
+      "compare": true,
+      "visible": true,
+      "color": "#607d8b"
+    },
+    {
+      "_comment": "Continuous, not latched: a latched capture would commit one point of the circle and hold it forever, which is correct behaviour for a bolted object and useless for a moving one.",
+
+      "id": "stub_demo_reported",
+      "source": "expected_pose",
+      "capture": "continuous",
+      "topic": "pose_fanuc",
+
+      "compare": true,
+      "visible": true,
+      "color": "#ffb74d"
+    }
+  ]
+}

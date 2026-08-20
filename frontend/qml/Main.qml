@@ -1,50 +1,71 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Mu.Material
+import CameraTracking
+
+// Three screens, forward only: Home -> Rotor Placement -> Position Tracking.
 
 MuApp {
     id: window
-    width: 1000
-    height: 650
-    title: qsTr("Camera Tracking — Hand Position Validation")
-    header: MuAppBar { title: window.title }
+    width: 1280
+    height: 900
+
+    readonly property string baseTitle: qsTr("P2D2 — Optitrack Validation")
+    title: backend.screenTitle ? baseTitle + ": " + backend.screenTitle : baseTitle
+
+    color: Theme.background
+    Material.theme: Material.Dark
+    Material.background: Theme.background
+    Material.foreground: Theme.textPrimary
+    Material.primary: Theme.seMediumPurple
+    Material.accent: Theme.seBrightPurple
+
+    header: MuAppBar {
+        title: window.title
+        background: Rectangle { color: Theme.seMediumPurple }
+    }
 
     ColumnLayout {
+        id: shell
         anchors.fill: parent
-        spacing: 0
+        anchors.margins: 8
+        spacing: 8
 
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: bannerLabel.implicitHeight + 12
-            visible: backend.fanucIsStub
-            color: "#c0392b"
+            visible: !backend.jointsLive
+            color: Theme.critical
+            radius: Theme.radiusSmall
 
             Label {
                 id: bannerLabel
                 anchors.centerIn: parent
-                text: qsTr("FANUC DATA IS SIMULATED (stub mode) — not a real controller link")
-                color: "white"
+                text: qsTr("NO JOINT STATE: the arm is at its home pose, not a measured position")
+                color: Theme.textOn(Theme.critical)
                 font.bold: true
             }
         }
-
-        RowLayout {
+        ViewportPanel {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 8
+        }
 
-            ViewportPanel {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 3
-            }
+        StackLayout {
+            id: bar
+            currentIndex: backend.screen
+            readonly property real share: Math.max(150, Math.min(320, shell.height * 0.30))
 
-            PanelsPanel {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 1
-            }
+            Layout.fillWidth: true
+            Layout.preferredHeight: share
+            Layout.minimumHeight: share
+            Layout.maximumHeight: share
+
+            HomeBar {}
+            RotorPlacementBar {}
+            TrackingBar {}
         }
     }
 }

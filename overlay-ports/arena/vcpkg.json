@@ -1,0 +1,28 @@
+{
+  "name": "arena",
+  "version-semver": "0.2.0",
+  "port-version": 7,
+  "description": "Language-neutral Siemens Energy schemas, model artifacts, and optional transports.",
+  "dependencies": [
+    "protobuf",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "ecal": {
+      "description": "eCAL transport adapter.",
+      "dependencies": [
+        "ecal"
+      ]
+    },
+    "model": {
+      "description": "Native ModelScene codec and IO."
+    }
+  }
+}

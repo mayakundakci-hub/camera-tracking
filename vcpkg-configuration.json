@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg-configuration.schema.json",
+  "default-registry": {
+    "kind": "builtin",
+    "baseline": "fab1c6dc7a944372a90a1e19ab5e8e32cd658fc2"
+  },
+  "overlay-ports": [
+    "./overlay-ports"
+  ],
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "git@code.siemens-energy.com:psc-development/p2d2/software/munera-sdk/vcpkg-registry.git",
+      "baseline": "001de915e71ac910a793e775ed7ce10c847f4047",
+      "packages": [
+        "arena",
+        "ludus",
+        "mulib"
+      ]
+    }
+  ]
+}

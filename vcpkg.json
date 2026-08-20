@@ -28,6 +28,37 @@
     "opencascade",
     "spdlog",
     "cli11",
-    "urdfdom"
-  ]
+    "urdfdom",
+    "orocos-kdl",
+    "sdformat",
+    "eigen3"
+  ],
+  "features": {
+    "munera-registry": {
+      "description": "Pull arena/mulib/ludus from the private vcpkg registry (see vcpkg-configuration.json) instead of building the local ../Munera source. Enable together with -DMUNERA_FROM_REGISTRY=ON. Off by default so local-source builds never touch the registry. NOTE that the registry builds what was PUSHED: any local edit in ../Munera that has not been committed and had its port REF bumped simply does not exist in this mode, and the build will succeed without it.",
+      "dependencies": [
+        {
+          "name": "arena",
+          "features": [
+            "ecal"
+          ]
+        },
+        {
+          "name": "mulib",
+          "features": [
+            "qml",
+            "cad",
+            "robot"
+          ]
+        },
+        {
+          "name": "ludus",
+          "features": [
+            "occt",
+            "robot"
+          ]
+        }
+      ]
+    }
+  }
 }

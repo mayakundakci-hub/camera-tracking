@@ -21,5 +21,5 @@ def load_config(filename: str = "config.json") -> dict:
 # Usage:
 #   from config import load_config
 #   cfg = load_config()
-#   topic = cfg["ecal"]["topic_validation"]
+#   topic = cfg["ecal"]["topic_scene_comparisons"]
 #   out_dir = cfg["logger"]["output_dir"]

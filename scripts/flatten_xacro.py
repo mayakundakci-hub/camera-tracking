@@ -1,39 +1,4 @@
 #!/usr/bin/env python3
-"""Minimal xacro flattener for the Dimachaerus robot cell.
-
-ludus (via urdfdom) can only load plain URDF, but the robot files under
-Rendering/ are xacro macros. Real `xacro` needs a ROS environment, which is
-awkward on bare Windows, so this expands the small feature subset those files
-actually use -- no ROS, just Python.
-
-Handled:
-  - <xacro:include filename="..."/>        recursive; resolved relative to the
-                                           including file (so Hand/Hand.urdf.xacro
-                                           must be unpacked from its .hand first)
-  - <xacro:macro name=".." params="a b">   definitions, whitespace-sep params
-  - <xacro:NAME a=".." b=".."/>            macro calls, including nested calls
-  - ${expr}                                substituted in text/attributes,
-                                           evaluated as a Python expression with
-                                           the current params + the math namespace
-                                           (pi, radians, sin, ...); each ${..} in
-                                           a string becomes str(eval(expr))
-
-Deliberately NOT general xacro: no <xacro:property>, conditionals, or
-default-valued params (none appear in these files). It raises on any xacro:*
-construct it doesn't understand rather than silently dropping it.
-
-Usage:
-  # default: flatten the full cell next to the source
-  python scripts/flatten_xacro.py
-
-  # explicit input/output
-  python scripts/flatten_xacro.py <input.urdf|.xacro> <output.urdf>
-
-Point the frontend at the result via CAMERA_TRACKING_ROBOT_URDF (env var) or
--DCAMERA_TRACKING_ROBOT_URDF at cmake configure time. The output MUST sit in the
-same directory as the meshes it references (Rendering/) so relative mesh paths
-resolve.
-"""
 import math
 import re
 import sys
@@ -45,7 +10,6 @@ XACRO = "http://wiki.ros.org/xacro"
 EVAL_NS = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
 _EXPR = re.compile(r"\$\{([^}]*)\}")
 
-# Repo-relative defaults for a bare invocation.
 _RENDERING = Path(__file__).resolve().parent.parent / "Rendering"
 _DEFAULT_SRC = _RENDERING / "URDFSeperatedGlobalRenderMacro.urdf"
 _DEFAULT_OUT = _RENDERING / "cell_flat.urdf"
@@ -142,11 +106,6 @@ def main():
         for ec in expand(child, {}, macros):
             flat.append(ec)
 
-    # urdfdom strictly requires BOTH effort and velocity on <limit> for revolute
-    # and prismatic joints and rejects the whole model otherwise. The Dimachaerus
-    # arm sources set effort but omit velocity (their own tooling parses more
-    # leniently); the packed-hand joints already carry both. These bounds don't
-    # affect rendering or home-pose FK, so fill any missing attribute with 0.
     n_fixed = 0
     for limit in flat.findall(".//limit"):
         if "velocity" not in limit.attrib or "effort" not in limit.attrib:

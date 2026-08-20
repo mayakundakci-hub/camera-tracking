@@ -1,60 +1,18 @@
 #include "RobotScene.hpp"
 
-#include <ludus/ForwardKinematics.hpp>
-#include <ludus/RobotData.hpp>
+#include <ludus/RobotScene.hpp>
 #include <ludus/UrdfImporter.hpp>
 
+#include <QtMath>
+
+#include <algorithm>
 #include <array>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <cmath>
+#include <cstdio>
+#include <iterator>
+
 
 namespace {
-
-std::array<double, 4> quatMul(const std::array<double, 4>& a,
-                              const std::array<double, 4>& b) {
-    const double aw = a[0], ax = a[1], ay = a[2], az = a[3];
-    const double bw = b[0], bx = b[1], by = b[2], bz = b[3];
-    return {
-        aw * bw - ax * bx - ay * by - az * bz,
-        aw * bx + ax * bw + ay * bz - az * by,
-        aw * by - ax * bz + ay * bw + az * bx,
-        aw * bz + ax * by - ay * bx + az * bw,
-    };
-}
-
-std::array<double, 3> rotateVector(const std::array<double, 4>& q,
-                                   const std::array<double, 3>& v) {
-    const std::array<double, 3> qv{q[1], q[2], q[3]};
-    const std::array<double, 3> c1{
-        qv[1] * v[2] - qv[2] * v[1],
-        qv[2] * v[0] - qv[0] * v[2],
-        qv[0] * v[1] - qv[1] * v[0],
-    };
-    const std::array<double, 3> c2{
-        qv[1] * c1[2] - qv[2] * c1[1],
-        qv[2] * c1[0] - qv[0] * c1[2],
-        qv[0] * c1[1] - qv[1] * c1[0],
-    };
-    return {
-        v[0] + 2.0 * q[0] * c1[0] + 2.0 * c2[0],
-        v[1] + 2.0 * q[0] * c1[1] + 2.0 * c2[1],
-        v[2] + 2.0 * q[0] * c1[2] + 2.0 * c2[2],
-    };
-}
-
-ludus::Transform compose(const ludus::Transform& parent,
-                         const ludus::Transform& local) {
-    ludus::Transform out;
-    out.rotation = quatMul(parent.rotation, local.rotation);
-    const std::array<double, 3> rotated = rotateVector(parent.rotation, local.position);
-    out.position = {
-        parent.position[0] + rotated[0],
-        parent.position[1] + rotated[1],
-        parent.position[2] + rotated[2],
-    };
-    return out;
-}
 
 std::array<float, 3> toF3(const std::array<double, 3>& v) {
     return {static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2])};
@@ -63,6 +21,16 @@ std::array<float, 3> toF3(const std::array<double, 3>& v) {
 std::array<float, 4> toF4(const std::array<double, 4>& q) {
     return {static_cast<float>(q[0]), static_cast<float>(q[1]),
             static_cast<float>(q[2]), static_cast<float>(q[3])};
+}
+
+constexpr float kMetresToScene = 1000.0f;
+
+std::array<float, 4> parseColor(const std::string& hex) {
+    if (hex.size() != 7 || hex[0] != '#') return {0.8f, 0.8f, 0.8f, 1.0f};
+    const auto channel = [&](std::size_t at) {
+        return static_cast<float>(std::stoi(hex.substr(at, 2), nullptr, 16)) / 255.0f;
+    };
+    return {channel(1), channel(3), channel(5), 1.0f};
 }
 
 QString joinErrors(const std::vector<std::string>& errors) {
@@ -74,12 +42,26 @@ QString joinErrors(const std::vector<std::string>& errors) {
     return out;
 }
 
+mu::robot::RobotVisual toRobotVisual(const ludus::RobotSceneVisual& v) {
+    mu::robot::RobotVisual rv;
+    rv.name = v.name;
+    rv.mesh_path = v.mesh_path;
+    rv.object_id = v.object_id;
+    rv.position = toF3(v.world.position);
+    rv.rotation = toF4(v.world.rotation);
+    rv.scale = toF3(v.scale);
+    if (v.material) {
+        rv.has_color = true;
+        rv.color = {v.material->color.r, v.material->color.g,
+                    v.material->color.b, v.material->color.a};
+    }
+    return rv;
+}
+
 } // namespace
 
 RobotScene::RobotScene(QObject* parent)
-    : QObject(parent) {
-    setStatus(QStringLiteral("No robot loaded"), false);
-}
+    : QObject(parent), status_(QStringLiteral("No scene loaded")) {}
 
 void RobotScene::setStatus(QString value, bool loaded) {
     status_ = std::move(value);
@@ -87,82 +69,265 @@ void RobotScene::setStatus(QString value, bool loaded) {
     emit statusChanged();
 }
 
-bool RobotScene::loadUrdf(const QString& path) {
-    if (path.trimmed().isEmpty()) {
-        model_.setVisuals({});
-        setStatus(QStringLiteral("No robot loaded"), false);
-        return false;
-    }
+// building the scene
 
-    const ludus::UrdfImportResult imported =
-        ludus::import_urdf_file(path.toStdString());
-    if (!imported.ok) {
-        model_.setVisuals({});
-        setStatus(QStringLiteral("URDF import failed: %1").arg(joinErrors(imported.errors)),
-                  false);
-        return false;
-    }
+bool RobotScene::loadScene(const scene::Scene& sceneCfg) {
+    meshScale_.clear();
+    visualOffset_.clear();
+    haveRobot_ = false;
+    jointIndex_.clear();
 
-    ludus::RobotState state;
-    state.robot_id = imported.robot.robot_id;
-    state.joint_positions.assign(imported.robot.joints.size(), 0.0);
+    std::vector<mu::robot::RobotVisual> rows;
+    int articulated = 0;
 
-    const ludus::FkResult fk = ludus::compute_fk(imported.robot, state);
-    if (!fk.ok) {
-        model_.setVisuals({});
-        setStatus(QStringLiteral("Forward kinematics failed: %1").arg(joinErrors(fk.errors)),
-                  false);
-        return false;
-    }
-
-    std::unordered_map<std::string, ludus::Transform> linkWorld;
-    linkWorld.reserve(fk.link_poses.size());
-    for (const ludus::LinkPose& pose : fk.link_poses) {
-        linkWorld.emplace(pose.link_id, pose.world);
-    }
-
-    std::vector<mu::robot::RobotVisual> visuals;
-    for (const ludus::RobotLink& link : imported.robot.links) {
-        const auto it = linkWorld.find(link.id);
-        if (it == linkWorld.end()) continue;
-
-        for (const ludus::LinkVisual& visual : link.visuals) {
-            if (visual.mesh.path.empty()) continue;
-
-            const ludus::Transform world = compose(it->second, visual.origin);
-
-            mu::robot::RobotVisual rv;
-            rv.name = visual.name;
-            rv.mesh_path = visual.mesh.path;
-            rv.position = toF3(world.position);
-            rv.rotation = toF4(world.rotation);
-            rv.scale = toF3(visual.mesh.scale);
-            // Per-link URDF <material><color rgba> -> per-row color role;
-            // links without a material fall back to the view's modelColor.
-            // (texture_path is not carried over -- none of these robots use
-            // textures, and MuMultiModelView has no textured material yet.)
-            if (visual.material) {
-                rv.has_color = true;
-                rv.color = {visual.material->color.r, visual.material->color.g,
-                            visual.material->color.b, visual.material->color.a};
+    for (const scene::Object& object : sceneCfg.objects) {
+        for (const scene::Placement& placement : object.placements) {
+            if (placement.source == scene::Source::JointState) {
+                if (importArticulated(placement, rows)) ++articulated;
+                continue;
             }
-            visuals.push_back(std::move(rv));
+            // Frame-only objects (the anchor, typically) carry no geometry.
+            if (object.visual_mesh.empty()) continue;
+
+            if (!placement.visible) continue;
+
+            addMeshRow(object, placement, rows);
         }
     }
 
-    const int count = static_cast<int>(visuals.size());
-    model_.setVisuals(std::move(visuals));
+    const int count = static_cast<int>(rows.size());
+    model_.setVisuals(std::move(rows));
 
     if (count == 0) {
-        setStatus(QStringLiteral("Robot \"%1\" has no renderable mesh visuals")
-                      .arg(QString::fromStdString(imported.robot.robot_id)),
+        setStatus(QStringLiteral("Scene has no renderable geometry"), false);
+        return false;
+    }
+
+    setStatus(QStringLiteral("Loaded %1 rows (%2 articulated, %3 placed meshes)")
+                  .arg(count)
+                  .arg(articulated)
+                  .arg(static_cast<int>(meshScale_.size())),
+              true);
+    return true;
+}
+
+bool RobotScene::importArticulated(const scene::Placement& placement,
+                                    std::vector<mu::robot::RobotVisual>& rows) {
+    const ludus::UrdfImportResult imported = ludus::import_urdf_file(placement.urdf);
+    if (!imported.ok) {
+        setStatus(QStringLiteral("URDF import failed for %1: %2")
+                      .arg(QString::fromStdString(placement.id), joinErrors(imported.errors)),
                   false);
         return false;
     }
 
-    setStatus(QStringLiteral("Loaded %1: %2 link visuals")
-                  .arg(QString::fromStdString(imported.robot.robot_id))
-                  .arg(count),
-              true);
+    ludus::RobotState home;
+    home.robot_id = imported.robot.robot_id;
+    home.joint_positions.assign(imported.robot.joints.size(), 0.0);
+
+    const ludus::RobotScene built = ludus::build_robot_scene(imported.robot, home);
+    if (!built.ok) {
+        setStatus(QStringLiteral("Forward kinematics failed for %1: %2")
+                      .arg(QString::fromStdString(placement.id), joinErrors(built.errors)),
+                  false);
+        return false;
+    }
+
+    rows.reserve(rows.size() + built.visuals.size());
+    for (const ludus::RobotSceneVisual& v : built.visuals) rows.push_back(toRobotVisual(v));
+
+    robot_ = imported.robot;
+    haveRobot_ = true;
+    articulatedId_ = placement.id;
+    lastJoints_.assign(imported.robot.joints.size(), 0.0);
+    buildJointIndex();
     return true;
+}
+
+void RobotScene::addMeshRow(const scene::Object& object, const scene::Placement& placement,
+                             std::vector<mu::robot::RobotVisual>& rows) {
+    
+    mu::robot::RobotVisual rv;
+    rv.name = placement.id;
+    rv.mesh_path = object.visual_mesh;
+    rv.has_color = true;
+    rv.color = parseColor(placement.color);
+    rv.position = {0.0f, 0.0f, 0.0f};
+
+    rv.scale = {0.0f, 0.0f, 0.0f};
+
+    meshScale_[placement.id] = static_cast<float>(object.mesh_scale);
+
+    
+    const frames::Vec3 t = object.visual_offset.translation;
+    const frames::Quat q = object.visual_offset.rotation;
+
+    VisualOffset vo;
+    vo.positionScene = QVector3D(static_cast<float>(t.x()), static_cast<float>(t.y()),
+                                 static_cast<float>(t.z())) * kMetresToScene;
+    vo.rotation = QQuaternion(static_cast<float>(q.w()), static_cast<float>(q.x()),
+                              static_cast<float>(q.y()), static_cast<float>(q.z()));
+    vo.identity = t.isZero(1e-12) && std::abs(std::abs(q.w()) - 1.0) < 1e-12;
+    visualOffset_[placement.id] = vo;
+
+    rows.push_back(std::move(rv));
+}
+
+// posing
+
+void RobotScene::buildJointIndex() {
+    jointIndex_.clear();
+    for (std::size_t i = 0; i < robot_.joints.size(); ++i)
+        jointIndex_.emplace(robot_.joints[i].id, static_cast<int>(i));
+}
+
+void RobotScene::setJointByName(std::vector<double>& q, const QString& armPrefix,
+                                 const QString& suffix, double value) const {
+    auto it = jointIndex_.find((armPrefix + suffix).toStdString());
+
+
+    if (it == jointIndex_.end()) it = jointIndex_.find(suffix.toStdString());
+
+    if (it == jointIndex_.end()) return;   // joint absent in this URDF; skip quietly
+    if (it->second >= 0 && static_cast<std::size_t>(it->second) < q.size())
+        q[static_cast<std::size_t>(it->second)] = value;
+}
+
+void RobotScene::applyJointState(const QString& arm, double railPositionMm,
+                                  const std::vector<double>& robotJointsDeg,
+                                  const std::vector<double>& handJointsDeg) {
+    if (!haveRobot_) return;
+
+    QString prefix = arm.trimmed().isEmpty() ? QStringLiteral("Left") : arm.trimmed();
+    if (!prefix.endsWith(QLatin1Char('_'))) prefix += QLatin1Char('_');
+
+    std::vector<double> q(robot_.joints.size(), 0.0);
+
+    setJointByName(q, prefix, QStringLiteral("rail_to_carriage"), railPositionMm);
+
+    if (robotJointsDeg.size() >= 6) {
+   
+        const double j3Corrected = robotJointsDeg[2] + robotJointsDeg[1];
+
+        setJointByName(q, prefix, QStringLiteral("joint_1"), qDegreesToRadians(robotJointsDeg[0]));
+        setJointByName(q, prefix, QStringLiteral("joint_2"), qDegreesToRadians(robotJointsDeg[1]));
+        setJointByName(q, prefix, QStringLiteral("joint_3"), qDegreesToRadians(j3Corrected));
+        setJointByName(q, prefix, QStringLiteral("joint_4"), qDegreesToRadians(robotJointsDeg[3]));
+        setJointByName(q, prefix, QStringLiteral("joint_5"), qDegreesToRadians(robotJointsDeg[4]));
+        setJointByName(q, prefix, QStringLiteral("joint_6"), qDegreesToRadians(robotJointsDeg[5]));
+    }
+
+    static const QString kHandJoints[] = {
+        QStringLiteral("hand_link_base_to_hand_link_1"),
+        QStringLiteral("hand_link_1_to_hand_link_2"),
+        QStringLiteral("hand_link_2_to_tool_rotate"),
+    };
+    const std::size_t handCount = std::min(handJointsDeg.size(), std::size(kHandJoints));
+    for (std::size_t i = 0; i < handCount; ++i)
+        setJointByName(q, prefix, kHandJoints[i], qDegreesToRadians(handJointsDeg[i]));
+
+    if (haveSmoothedJoints_ && lastJoints_.size() == q.size() && renderSmoothing_ < 1.0) {
+        for (std::size_t i = 0; i < q.size(); ++i)
+            lastJoints_[i] += renderSmoothing_ * (q[i] - lastJoints_[i]);
+    } else {
+        lastJoints_ = q;
+        haveSmoothedJoints_ = true;
+    }
+    poseArticulated();
+}
+
+void RobotScene::setRenderSmoothing(double alpha) {
+    renderSmoothing_ = std::clamp(alpha, 0.01, 1.0);
+}
+
+void RobotScene::poseArticulated() {
+    if (!haveRobot_) return;
+
+    ludus::RobotState state;
+    state.robot_id = robot_.robot_id;
+    state.joint_positions = lastJoints_;
+
+    const ludus::RobotScene built = ludus::build_robot_scene(robot_, state);
+    if (!built.ok) return;
+
+   
+    const bool logging = articulatedRootValid_ && !loggedArticulated_;
+    if (logging)
+    {
+        loggedArticulated_ = true;
+        std::printf("[render] '%s': %zu visuals, root at [%.1f %.1f %.1f] mm\n",
+                    articulatedId_.c_str(), built.visuals.size(),
+                    articulatedRootMm_.x(), articulatedRootMm_.y(), articulatedRootMm_.z());
+        std::printf("[render]   joints fed to FK:");
+        for (double v : lastJoints_) std::printf(" %.3f", qRadiansToDegrees(v));
+        std::printf(" deg\n");
+    }
+
+    // Move the existing meshes to their new world poses; no reload.
+    for (const ludus::RobotSceneVisual& v : built.visuals) {
+        const std::array<float, 3> p = toF3(v.world.position);
+        const std::array<float, 4> r = toF4(v.world.rotation);
+        const std::array<float, 3> s = toF3(v.scale);
+
+        QVector3D   position(p[0], p[1], p[2]);
+        QQuaternion rotation(r[0], r[1], r[2], r[3]);
+
+        
+        if (articulatedRootValid_) {
+            position = articulatedRootMm_ + articulatedRootRot_.rotatedVector(position);
+            rotation = articulatedRootRot_ * rotation;
+        }
+
+        if (logging)
+            std::printf("[render]   %-24s FK [%8.1f %8.1f %8.1f] -> drawn [%8.1f %8.1f %8.1f] mm"
+                        "  scale [%.3f %.3f %.3f]  %s\n",
+                        v.name.c_str(), p[0], p[1], p[2],
+                        position.x(), position.y(), position.z(), s[0], s[1], s[2],
+                        v.mesh_path.c_str());
+
+        model_.updateTransform(QString::fromStdString(v.name), position, rotation,
+                               QVector3D(s[0], s[1], s[2]));
+    }
+}
+
+void RobotScene::setPlacementPose(const QString& placementId, const QVector3D& positionMetres,
+                                   const QQuaternion& rotation, bool valid) {
+    
+    if (!articulatedId_.empty() && placementId.toStdString() == articulatedId_) {       
+        if (valid) {
+            articulatedRootValid_ = true;
+
+            const QVector3D   posMm = positionMetres * kMetresToScene;
+            const QQuaternion rot   = rotation;
+            if (haveSmoothedRoot_ && renderSmoothing_ < 1.0) {
+                const float a = static_cast<float>(renderSmoothing_);
+                articulatedRootMm_  = articulatedRootMm_ + (posMm - articulatedRootMm_) * a;
+                articulatedRootRot_ =
+                    QQuaternion::slerp(articulatedRootRot_, rot, a).normalized();
+            } else {
+                articulatedRootMm_  = posMm;
+                articulatedRootRot_ = rot;
+                haveSmoothedRoot_   = true;
+            }
+        }
+        poseArticulated();
+        return;
+    }
+
+    const auto it = meshScale_.find(placementId.toStdString());
+    if (it == meshScale_.end())
+        return;   // no geometry for this placement (frame-only)
+
+    const float s = valid ? it->second : 0.0f;
+
+    QVector3D   position = positionMetres * kMetresToScene;
+    QQuaternion orientation = rotation;
+
+    const auto off = visualOffset_.find(placementId.toStdString());
+    if (off != visualOffset_.end() && !off->second.identity) {
+        position += rotation.rotatedVector(off->second.positionScene);
+        orientation = rotation * off->second.rotation;
+    }
+
+    model_.updateTransform(placementId, position, orientation, QVector3D(s, s, s));
 }

@@ -30,12 +30,27 @@
     {
       "name": "windows-msvc-release",
       "inherits": "windows-msvc-base"
+    },
+    {
+      "name": "windows-msvc-debug-registry",
+      "displayName": "Windows MSVC / Munera from the vcpkg registry",
+      "inherits": "windows-msvc-base",
+      "cacheVariables": {
+        "MUNERA_FROM_REGISTRY": "ON",
+        "VCPKG_MANIFEST_FEATURES": "munera-registry",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/out/vcpkg_installed_registry"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "build-debug",
       "configurePreset": "windows-msvc-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "build-debug-registry",
+      "configurePreset": "windows-msvc-debug-registry",
       "configuration": "Debug"
     },
     {

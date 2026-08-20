@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package camera_tracking;
 
-// Published by backend's optitrack part on topic "pose_opti"
-// Published by backend's fanuc part     on topic "pose_fanuc"
+// A 6-DOF pose on the wire. Carried by the fanuc stub, and by whatever the
+// robot bridge publishes for an `expected_pose` placement to consume.
 message PosePacket {
   double timestamp = 1;   // source-side capture time (Motive frame time / controller time), seconds
   double pos_x     = 2;   // meters (convert mm -> m in the fanuc side so both topics share units)
@@ -17,18 +17,129 @@ message PosePacket {
   string frame_id  = 10;  // "optitrack_world" or "fanuc_base"
 }
 
-// Published by backend's transform_sync part on topic "hand/validation"
-// Single message carrying everything the frontend + logger need
-// (avoids frontend stitching multiple topics together)
-message ValidationPacket {
-  double     timestamp    = 1;  // time of the matched sample pair
-  PosePacket pose_fanuc   = 2;  // as reported by controller (fanuc_base frame)
-  PosePacket pose_camera  = 3;  // OptiTrack pose ALREADY transformed into fanuc_base frame
-  double     error_mm     = 4;  // euclidean distance between the two, millimeters
-  double     error_x_mm   = 5;  // per-axis breakdown
-  double     error_y_mm   = 6;
-  double     error_z_mm   = 7;
-  bool       valid        = 8;  // false if either source was invalid/stale for this sample
-  bool       fanuc_is_stub = 9; // true when pose_fanuc came from backend's simulated stub,
-                                 // not a real controller link — frontend/logger must surface this
+// Published on topic "robot/joint_state" by the FANUC bridge.
+
+message JointStatePacket {
+  double          timestamp         = 1;  // same clock as PosePacket.timestamp
+  string          arm               = 2;  // "Left" or "Right" — which arm this describes
+  double          rail_position     = 3;  // mm, carriage position along the rail
+  repeated double robot_joints      = 4;  // J1..J6, degrees, J3 relative to J1
+  repeated double hand_joints       = 5;  // EOAT joints, degrees
+  int32           active_tool_frame = 6;  // which UTOOL the controller's TCP is expressed in.
+                                          // Without this a tool change silently shifts the
+                                          // reported point and corrupts the error numbers.
+  bool            valid             = 7;
 }
+
+// One placement's pose, resolved into the scene's anchor frame.
+message PlacedPose {
+  string placement_id = 1;
+  string object_id    = 2;   // several placements share one object_id
+  double pos_x        = 3;   // metres, in the anchor frame
+  double pos_y        = 4;
+  double pos_z        = 5;
+  double quat_w       = 6;
+  double quat_x       = 7;
+  double quat_y       = 8;
+  double quat_z       = 9;
+  bool   valid        = 10;  // false until the placement has been positioned once
+  double stamp        = 11;  // age of the OLDEST measurement in this pose's chain
+
+  bool   latched              = 12;
+  uint32 samples_used         = 13;  // survivors the pose was averaged from
+  uint32 samples_rejected     = 14;  // outliers cut from the window
+  double spread_mm            = 15;
+  double spread_deg           = 16;
+  double std_err_mm           = 17;
+  double std_err_deg          = 18;
+  double mean_marker_error_mm = 19;  // Motive's fit residual; 0 for expected_pose
+}
+
+// Published on topic "scene/placements" by the backend's placement part.
+
+message ScenePlacementsPacket {
+  double     timestamp    = 1;
+  string     anchor_frame = 2;   // the placement id everything here is relative to
+  bool       complete     = 3;   // false while any placement still awaits a measurement
+  repeated PlacedPose placements = 4;
+  PlacedPose anchor_in_mocap = 5;
+}
+
+message ObjectDelta {
+  string object_id = 1;
+  string a         = 2;   // placement id whose frame the difference is expressed in
+  string b         = 3;   // placement id being compared against it
+  string a_source  = 4;   // "optitrack" / "expected_pose" -- which claim is which
+  string b_source  = 5;
+
+  double dx_mm       = 6;
+  double dy_mm       = 7;
+  double dz_mm       = 8;
+  double distance_mm = 9;
+  double angle_deg   = 10;
+
+  double stamp      = 11;  // oldest measurement contributing to this delta
+  double time_gap_s = 12;  // how far apart the two samples were; 0 for latched pairs
+
+  bool   valid          = 13;
+  string invalid_reason = 14;  // populated when valid == false, never empty then
+  bool   review_gated   = 15;
+}
+
+// Published on topic "session/control" by the FRONTEND -- the one topic that
+message SessionControlPacket {
+  double timestamp   = 1;
+  // The operator's logging toggle AND the run having started, resolved into one
+  // flag so the logger holds no policy of its own.
+  bool   log_enabled = 2;
+  // Which screen the operator is on, for the log's own record: "home",
+  // "rotor_placement", "position_tracking".
+  string phase       = 3;
+}
+
+message ComparisonPacket {
+  double timestamp = 1;
+  repeated ObjectDelta deltas = 2;
+}
+
+message JointEstimate {
+  string joint_id  = 1;   // the projected placement's id
+  string object_id = 2;
+  bool   estimated   = 3;
+  string skip_reason = 4;
+  double theta_deg   = 5;
+  double age_s       = 6;
+
+  double theta_raw_deg = 7;   // before limit clamping
+  double lower_deg     = 8;
+  double upper_deg     = 9;
+
+  bool   clamped       = 10;
+  bool   unconstrained = 11;
+
+
+  double radial_error_mm = 12;
+  double axial_error_mm  = 13;
+
+  double residual_mm  = 14;
+  double residual_deg = 15;   // rotation the joint cannot produce
+
+  double confidence = 16;
+
+  bool   reported_valid  = 17;
+  double reported_deg    = 18;
+  double reported_age_s  = 19;
+
+  double error_deg       = 20;
+  string reported_status = 21;   // "" when valid; otherwise which kind of waiting
+
+  double stamp = 22;   // when the underlying measurement was taken
+}
+
+// Published on topic "scene/joint_estimates" by the backend.
+message JointEstimatePacket {
+  double timestamp = 1;
+  repeated JointEstimate joints = 2;
+  bool   complete  = 3;   // false while any joint has yet to produce an estimate
+}
+

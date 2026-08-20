@@ -1,0 +1,31 @@
+{
+  "id": "hand",
+  "display_name": "Hand (measured)",
+
+  "placements": [
+    {
+      "id": "hand_mount",
+      "source": "static",
+      "parent_frame": "hand_left_base_opti",
+      "pose": {
+        "position_mm": [0.0, 0.0, 0.0],
+        "quat_wxyz": [0.5, -0.5, 0.5, 0.5]
+      },
+
+      "compare": false,
+      "visible": false,
+      "color": "#808080"
+    },
+    {
+      "id": "hand_posed",
+      "source": "joint_state",
+      "parent_frame": "hand_mount",
+      "urdf": "Rendering/hand.urdf",
+
+      "topic": "hand/joint_state_measured",
+
+      "compare": false,
+      "color": "#808080"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "name": "mulib",
+  "version-semver": "0.1.0",
+  "port-version": 11,
+  "description": "Reusable Qt/QML presentation libraries for Arena and Ludus concepts.",
+  "dependencies": [
+    {
+      "name": "arena",
+      "features": [
+        "model"
+      ]
+    },
+    "nlohmann-json",
+    "spdlog",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "cad": {
+      "description": "CAD presentation components.",
+      "dependencies": [
+        {
+          "name": "ludus",
+          "features": [
+            "occt"
+          ]
+        }
+      ]
+    },
+    "qml": {
+      "description": "Qt/QML modules.",
+      "dependencies": [
+        "qtbase",
+        "qtdeclarative",
+        "qtquick3d"
+      ]
+    },
+    "robot": {
+      "description": "Robot presentation components.",
+      "dependencies": [
+        {
+          "name": "ludus",
+          "features": [
+            "robot"
+          ]
+        },
+        "qtdeclarative"
+      ]
+    }
+  }
+}

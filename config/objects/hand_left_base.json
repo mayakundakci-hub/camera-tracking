@@ -1,0 +1,39 @@
+{
+  "id": "hand_left_base",
+  "display_name": "Hand base (green plate)",
+
+  "_note": "Left_hand_link_base in p2d2.urdf -- bolted rigidly to the MOAT, so no hand joint moves it. It is the root of the tracked chain: the largest plate, so the widest marker spread, so the best-constrained orientation, and orientation is the only thing a revolute projection consumes.",
+
+  "_unchecked": "Nothing upstream measures this body, so its error is common mode -- it shifts theta8 and theta9 together rather than showing in either residual. The toolpoint comparison against the robot is what catches it, once the bridge publishes.",
+
+  "placements": [
+    {
+      "id": "hand_left_base_opti",
+      "source": "optitrack",
+      "capture": "continuous",
+      "asset_id": 1,
+
+      "compare": false,
+      "visible": false,
+      "color": "#808080"
+    }
+  ],
+
+  "_placement_when_the_bridge_exists": [
+    {
+      "_note": "The robot's own claim about this plate, from its forward kinematics. Rail-relative, on the same clock as the mocap stamps. The only check on the tracked chain's root.",
+      "id": "hand_left_base_expected",
+      "source": "expected_pose",
+      "capture": "continuous",
+      "topic": "robot/hand_base",
+      "color": "#808080"
+    }
+  ],
+
+  "calibrated": {
+    "date": "2026-08-12",
+    "rms_mm": -1.0,
+    "motive_asset_rev": "green plate / streaming id 1 / 4 markers",
+    "note": "Pivot set by hand at a CAD point -- which is the whole mount calibration, since there is no offset field to correct it. Verified by inter-pivot distances agreeing with CAD to under 1 mm."
+  }
+}

@@ -2,38 +2,92 @@
   "_comment": "Central config for the whole camera-tracking validation project. Every node loads this same file so there is one place to change IPs, IDs, rates, and paths.",
 
   "ecal": {
-    "topic_pose_opti": "pose_opti",
     "topic_pose_fanuc": "pose_fanuc",
-    "topic_validation": "hand/validation"
+    "topic_joint_state": "robot/joint_state",
+    "topic_scene_placements": "scene/placements",
+    "topic_scene_comparisons": "scene/comparisons",
+    "topic_scene_joint_estimates": "scene/joint_estimates",
+    "topic_hand_joint_state_measured": "hand/joint_state_measured",
+    "topic_session_control": "session/control"
+  },
+
+  "scene": {
+    "_comment": "The scene manifest lists which objects are active and which placement anchors the world. Everything about WHAT is tracked lives there and in config/objects/*.json, not here — swapping a rotor is a manifest edit, not a change to this file.",
+    "manifest": "config/scene.json",
+    "_publish_rate_note": "scene/placements is republished at this rate because eCAL has no latched topics: a frontend started after the backend would otherwise never see the scene.",
+    "publish_rate_hz": 10
   },
 
   "optitrack": {
     "motive_server_ip": "127.0.0.1",
-    "hand_rigid_body_id": 1,
-    "required": true,
-    "_note": "rotor_rigid_body_id only used if you go the tracked-fixture route instead of a fixed CAD offset. required=false runs backend with no Motive/NatNet hardware at all (dev/demo mode) -- transform_sync will always report valid=false, since there's no camera data to match against. Set true once Motive is actually up."
+    "local_address": "127.0.0.1",
+    "max_mean_error_mm": 2.0,
+    "_required_note": "true means the backend EXITS if it cannot reach Motive, because there is nothing useful to do without camera data. Set it false only to bring up the render and the config path with no hardware — in that mode nothing is measured, and the startup line says so.",
+    "required": true
   },
 
   "fanuc": {
-    "publish_rate_hz": 60,
-    "connection_mode": "stub",
-    "_note": "connection_mode: 'stub' = simulated poses, 'live' = real P2D2/FANUCLibrary link (not implemented yet)"
+    "_note": "A simulated pose publisher kept as a stand-in for the robot bridge. Point an expected_pose placement's 'topic' at pose_fanuc to exercise the placement and comparison path before the real bridge exists. Nothing subscribes to it unless the manifest asks.",
+    "stub_enabled": true,
+    "publish_rate_hz": 60
   },
 
-  "transform_sync": {
+  "latch": {
+    "_comment": "How a 'latched' placement's pose is decided. It used to be the first frame in which the body was tracked -- one sample, full sensor noise, and no way to tell a good latch from a bad one. For the anchor that is fatal: every pose in the session is relative to it, so an outlier there biases every number CONSISTENTLY, which reads as systematic robot error rather than as a mocap glitch.",
+    "_algorithm": "Sliding window of min_samples. Admit (tracked, marker error under limit) -> seed (per-axis median + sign-aligned quaternion mean) -> reject outliers past mad_k robust sigmas -> gate (reject fraction, dispersion) -> commit the mean of the survivors. Spread is measured on the COMPOSED MODEL POSE, so it describes the model origin rather than the markers.",
+    "_tuning": "These are starting points, not measured values. The [latch] report prints the observed spread for every placement, so tune against a real capture rather than guessing. Per-placement overrides go in config/objects/<object>.json under a placement's 'latch' key -- needed because the rotor's origin is metres from its markers where the rail's is centimetres, so identical camera performance yields an order of magnitude more spread on the rotor.",
+
+    "min_samples": 240,
+    "max_mean_error_mm": 5.0,
+    "mad_k": 3.0,
+    "max_reject_fraction": 0.2,
+    "max_spread_mm": 2.0,
+    "max_spread_deg": 0.5,
+    "timeout_s": 15.0
+  },
+
+  "joint_projection": {
+    "_comment": "How a 'projected' placement's estimate is judged. A projection forces a measured pose onto the one degree of freedom its joint actually has; these thresholds decide when the leftover is worth flagging.",
+    "radial_warn_mm": 2.0,
+    "axial_warn_mm": 2.0,
+    "residual_warn_deg": 1.0,
+    "min_confidence": 0.05,
+    "reported_max_age_s": 0.5,
+    "_capture_zero_how": "Hold the mechanism at the pose you want to call zero, set this true, run for ~10 s, and each joint prints BOTH halves of its zero_pose: the quat_wxyz that makes the held pose read 0.000, and the position_mm where the child's origin actually sat while it was held. Paste both, then set this back to false -- left on, it re-measures against whatever pose the next session happens to start in.",
+    "capture_zero": true
+  },
+
+  "construction": {
+
+    "chord_warn_mm": 5.0,
+
+    "normal_warn_deg": 0.5,
+
+    "out_of_plane_warn_mm": 5.0,
+
+    "expect_normal_warn_deg": 5.0
+  },
+
+  "comparison": {
     "max_match_gap_sec": 0.020,
-    "stale_after_sec": 0.200,
-    "buffer_len": 256,
-    "calibration_file": "calibration/transform.json"
+    "buffer_len": 256
+  },
+
+  "review": {
+    "warn_mm": 5.0,
+    "warn_deg": 0.5,
+    "critical_mm": 25.0,
+    "critical_deg": 2.0
   },
 
   "frontend": {
-    "viewport_render_rate_hz": 60,
-    "panel_refresh_rate_hz": 10,
-    "stale_after_ms": 200,
-    "error_history_len": 600,
-    "rotor_model": "rotor_type_a",
-    "rotor_library_dir": "assets/rotors"
+    "render_smoothing": 0.25,
+
+    "view": {
+      "pitch_deg": 0,
+      "yaw_deg": -90,
+      "padding": 1.0
+    }
   },
 
   "logger": {

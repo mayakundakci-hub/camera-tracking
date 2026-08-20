@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Instantiates Hand/Hand.urdf.xacro as a standalone, single-arm hand.
+
+     Hand.urdf.xacro defines a MACRO and nothing else, so it cannot be imported directly:
+     a macro body is a template, not a robot, and its ${prefix} and ${color} stay
+     unresolved until something calls it. This file is that caller, and it exists so the
+     flattening is reproducible from the script rather than transcribed by hand:
+
+         python scripts/flatten_xacro.py Rendering/hand_left.urdf.xacro Rendering/hand_left.urdf
+
+     prefix="Left" rather than "" on purpose. The macro names its joints
+     ${prefix}_hand_link_base_to_hand_link_1, i.e. prefix at the FRONT only, and
+     RobotScene::setJointByName looks up (armPrefix + suffix), which is
+     "Left_" + "hand_link_base_to_hand_link_1". Those agree exactly. An empty prefix would
+     emit "_hand_link_base_to_hand_link_1" with a leading underscore, matching neither the
+     prefixed lookup nor the bare-name fallback, and every joint would then be skipped in
+     silence: the hand would render stuck at its home pose no matter what was measured.
+
+     color is the SolidWorks export's own grey, carried through so the flattened file
+     resembles the hand_only.urdf it parallels. -->
+<robot name="Hand-Left" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:include filename="Hand/Hand.urdf.xacro" />
+  <xacro:Hand prefix="Left" color="0.89804 0.91765 0.92941 1" />
+</robot>

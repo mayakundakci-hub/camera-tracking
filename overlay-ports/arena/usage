@@ -1,0 +1,15 @@
+arena provides CMake targets:
+
+    find_package(Arena CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE Arena::Protocol Arena::Abi)
+
+  Available with the "model" feature:
+
+    target_link_libraries(main PRIVATE Arena::Model)
+
+  Available with the "ecal" feature:
+
+    target_link_libraries(main PRIVATE Arena::TransportEcal)
+
+arena also ships the canonical .NET, Python, and Rust SDK sources under
+share/arena/sdk; see share/arena/sdk-layout.json for the layout.

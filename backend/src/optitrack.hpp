@@ -1,21 +1,21 @@
-// =============================================================
-// optitrack: Motive (NatNet) -> pose_opti
-// =============================================================
+// optitrack: Motive (NatNet) -> scene placement
 #pragma once
 
-#include <middleware/EcalProtoTopic.hpp>
-#include "camera_tracking.pb.h"
+#include "../../nodes/common/object_placement.hpp"
 
 #include <NatNetTypes.h>
 #include <NatNetClient.h>
 
+#include <functional>
 #include <string>
+#include <vector>
 
 namespace optitrack {
 
-// Connects to Motive and registers the frame callback. Fatal on failure --
-// there is no point running fanuc/transform_sync without camera data.
-bool start(const std::string& motiveIp, int handRigidBodyId, NatNetClient& client,
-           middleware::EcalProtoPublisher<camera_tracking::PosePacket>& pub);
+using FrameCallback =
+    std::function<void(const std::vector<placement::BodyObservation>&, double stamp)>;
+
+bool start(const std::string& motiveIp, const std::string& localAddress, NatNetClient& client,
+           FrameCallback onFrame);
 
 } // namespace optitrack

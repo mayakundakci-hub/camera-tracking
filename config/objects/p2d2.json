@@ -1,0 +1,41 @@
+{
+  "_comment": "The whole P2D2 cell from Rendering/p2d2.urdf -- rail, both carriages, both MOATs, the m710ic50 arms and their hands: 34 links and 33 joints, drawn as ONE articulated object.",
+
+  "_it_is_already_flat": "p2d2.urdf contains no xacro at all (it is a plain <robot> with concrete link and joint names), so unlike Hand/Hand.urdf.xacro there is nothing to instantiate or flatten -- it imports directly.",
+
+  "_it_draws_its_own_rail": "rail_link sits at this URDF's root with an identity origin and carries Rail\\visual\\Rail.stl. So loading this object puts a rail on screen whether or not rail.json draws one -- which is why rail.json keeps visible:false. Two copies of the same 10 m mesh at the same place is not a second opinion, it is z-fighting.",
+
+  "id": "p2d2",
+  "display_name": "P2D2 cell",
+
+  "placements": [
+    {
+      "_comment": "Where the cell's root sits. Identity, because p2d2.urdf's rail_link IS the rail datum that rail_origin names -- the two frames are the same frame by construction, so no offset is owed.",
+
+      "id": "p2d2_mount",
+      "source": "static",
+      "pose": {
+        "position_mm": [0.0, 0.0, 0.0],
+        "quat_wxyz": [1.0, 0.0, 0.0, 0.0]
+      },
+      "compare": false,
+      "visible": false,
+      "color": "#9e9e9e"
+    },
+    {
+      "_comment": "The articulated cell. Posed by forward kinematics from the controller's joint state when the robot bridge exists; until then it holds the URDF's home pose, which is what the 'NO JOINT STATE' banner is reporting.",
+
+      "_ONE_ARTICULATED_ROBOT_AT_A_TIME": "RobotScene keeps a SINGLE robot description (robot_, jointIndex_, articulatedId_ and the root transform are all one each, not per-placement), and importArticulated overwrites them. With both this object and 'hand' loaded, the LAST joint_state placement imported wins that slot and is the only one that gets re-posed or carried to its mount; the other one's link rows keep the world poses they were given at load. Both are at their home pose here so both still draw correctly -- but do not read this scene as proof that two live articulated objects work, because they do not yet.",
+
+      "_topic": "The CONTROLLER's joint state, not the cameras'. Nothing publishes it yet, which is a roadmap item rather than a fault.",
+
+      "id": "p2d2_posed",
+      "source": "joint_state",
+      "parent_frame": "p2d2_mount",
+      "urdf": "Rendering/p2d2.urdf",
+      "topic": "robot/joint_state",
+      "compare": false,
+      "color": "#78909c"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+mulib provides CMake targets:
+
+    find_package(MuLib CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE MuLib::MuLib)
+
+  With the "qml" feature, QML modules are installed under the package's
+  qml/Mu directory (Mu.Material, Mu.Model, and friends). Add it to your
+  QML import path, e.g.:
+
+    set(QML_IMPORT_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/qml")
+
+  See share/mulib/MuLibTargets.cmake for the targets present in this
+  installation.

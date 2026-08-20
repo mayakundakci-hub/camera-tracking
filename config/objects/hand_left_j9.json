@@ -1,0 +1,47 @@
+{
+  "id": "hand_left_j9",
+  "display_name": "Hand J9 (purple plate)",
+  "placements": [
+    {
+      "id": "hand_left_j9_opti",
+      "source": "optitrack",
+      "capture": "continuous",
+      "asset_id": 3,
+      "_compare": "True on both placements here, so the pair publishes the gap between the measurement and the projection as a delta.",
+      "compare": true,
+      "color": "#808080"
+    },
+    {
+      "id": "hand_left_j9_projected",
+      "source": "projected",
+      "parent_frame": "hand_left_j8_projected",
+      "measured": "hand_left_j9_opti",
+
+      "joint": {
+        "axis": [0.0, 1.0, 0.0],
+        "zero_pose": {
+          "position_mm":   [-189.632, -21.134, -19.403],
+          "quat_wxyz":  [0.999941, 0.000000, -0.010854, 0.000000]
+        },
+        "axis_point": {
+          "position_mm": [19.50, 0.0, 229.85]
+        },
+
+        "lower_deg": -90,
+        "upper_deg": 90,
+
+        "reported_arm": "Left",
+        "reported_index": 1
+      },
+
+      "compare": true,
+      "color": "#808080"
+    }
+  ],
+
+  "calibrated": {
+    "date": "2026-08-12",
+    "rms_mm": -1.0,
+    "motive_asset_rev": "purple plate / streaming id 3 / 5 markers"
+  }
+}

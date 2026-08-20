@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 540" width="1240" height="540" role="img">
+  <title>camera-tracking — how a comparison falls out of the frame graph</title>
+  <desc>Diagram in three stages: one object definition file declares two placements; each registers an edge into a frame registry that routes queries through the latched rail-origin anchor; the registry then feeds two outputs — one published ObjectDelta per pair of placements, and one render row per visible placement, so the same mesh is drawn twice in two colours.</desc>
+  <style>
+    :root {
+      --surface:     #FFFFFF;
+      --surface-2:   #E9EEEE;
+      --ink:         #0E1719;
+      --body:        #354346;
+      --muted:       #667578;
+      --line:        #DCE3E3;
+      --line-strong: #9EADAF;
+      --accent:      #00707E;
+      --accent-soft: #E2F0F2;
+      --warm:        #9C5716;
+      --warm-soft:   #F6EBDE;
+
+      --display: "Bahnschrift", "DIN Alternate", "Segoe UI Semibold", "Avenir Next Condensed", system-ui, sans-serif;
+      --text: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface:     #151E21;
+        --surface-2:   #1D282C;
+        --ink:         #EAF0F0;
+        --body:        #BAC7C9;
+        --muted:       #8A9C9F;
+        --line:        #263236;
+        --line-strong: #47595D;
+        --accent:      #4FC9D6;
+        --accent-soft: #113640;
+        --warm:        #E3A45F;
+        --warm-soft:   #33261A;
+      }
+    }
+
+    text         { font-family: var(--text); }
+    .d-bg        { fill: var(--surface); }
+    .d-box       { fill: var(--surface);     stroke: var(--line-strong); stroke-width: 1.4; }
+    .d-box-acc   { fill: var(--accent-soft); stroke: var(--accent);      stroke-width: 1.4; }
+    .d-box-ext   { fill: var(--surface-2);   stroke: var(--line-strong); stroke-width: 1.4; }
+    .d-box-warm  { fill: var(--warm-soft);   stroke: var(--warm);        stroke-width: 1.4; stroke-dasharray: 7 4; }
+    .d-bound     { fill: none;               stroke: var(--line-strong); stroke-width: 1.4; stroke-dasharray: 3 6; }
+    .d-h         { fill: var(--ink);   font-family: var(--display); font-size: 17px; }
+    .d-h-sm      { fill: var(--ink);   font-family: var(--display); font-size: 14.5px; }
+    .d-t         { fill: var(--body);  font-size: 13px; }
+    .d-t-sm      { fill: var(--body);  font-size: 12px; }
+    .d-m         { fill: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .d-lbl       { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+    .d-eyebrow   { fill: var(--accent); font-family: var(--display); font-size: 11px; letter-spacing: 0.15em; }
+    .d-warm      { fill: var(--warm); }
+    .d-acc       { fill: var(--accent); }
+    .d-line      { stroke: var(--line-strong); stroke-width: 1.6; fill: none; }
+    .d-line-acc  { stroke: var(--accent);      stroke-width: 1.6; fill: none; }
+    .d-line-warm { stroke: var(--warm);        stroke-width: 1.6; fill: none; stroke-dasharray: 7 4; }
+    .d-rule      { stroke: var(--line); stroke-width: 1; }
+    .d-arrow     { fill: var(--line-strong); }
+    .d-arrow-acc { fill: var(--accent); }
+    .d-arrow-warm{ fill: var(--warm); }
+  </style>
+  <rect width="1240" height="540" class="d-bg"></rect>
+  <defs>
+    <marker id="m2a" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="d-arrow"></path>
+    </marker>
+  </defs>
+
+  <!-- stage 1 : object definition -->
+  <rect x="40" y="70" width="330" height="360" rx="6" class="d-box"></rect>
+  <text x="58" y="104" class="d-h-sm">rotor_a.json</text>
+  <text x="58" y="124" class="d-m">[One object &#183; one mesh asset]</text>
+  <line x1="40" y1="140" x2="370" y2="140" class="d-rule"></line>
+
+  <rect x="58" y="160" width="294" height="100" rx="5" class="d-box-acc"></rect>
+  <text x="76" y="192" class="d-h-sm">rotor_opti</text>
+  <text x="76" y="214" class="d-t-sm">source: optitrack</text>
+  <text x="76" y="238" class="d-lbl">what the cameras measure</text>
+
+  <rect x="58" y="274" width="294" height="100" rx="5" class="d-box-warm"></rect>
+  <text x="76" y="306" class="d-h-sm">rotor_expected</text>
+  <text x="76" y="328" class="d-t-sm">source: expected_pose</text>
+  <text x="76" y="352" class="d-lbl">what the robot controller claims</text>
+
+  <text x="58" y="404" class="d-t-sm">Each visible placement draws its own copy</text>
+
+  <!-- arrow 1 -->
+  <line x1="376" y1="230" x2="474" y2="230" class="d-line" marker-end="url(#m2a)"></line>
+  <text x="384" y="218" class="d-lbl">registers</text>
+
+  <!-- stage 2 : frame registry -->
+  <rect x="480" y="70" width="320" height="360" rx="6" class="d-box"></rect>
+  <text x="498" y="104" class="d-h-sm">Frame registry</text>
+  <text x="498" y="124" class="d-m">[frames.hpp]</text>
+  <line x1="480" y1="140" x2="800" y2="140" class="d-rule"></line>
+
+  <rect x="510" y="166" width="260" height="54" rx="27" class="d-box-ext"></rect>
+  <text x="640" y="199" text-anchor="middle" class="d-h-sm">mocap frame</text>
+
+  <line x1="640" y1="222" x2="640" y2="264" class="d-line"></line>
+
+  <rect x="510" y="266" width="260" height="60" rx="30" class="d-box-acc"></rect>
+  <text x="640" y="292" text-anchor="middle" class="d-h-sm">rail_origin</text>
+  <text x="640" y="312" text-anchor="middle" class="d-lbl">world anchor &#183; latched once</text>
+
+  <text x="498" y="368" class="d-lbl">Nothing is pre-composed into anchor space, so a</text>
+  <text x="498" y="386" class="d-lbl">recalibrated Motive cancels out of every query.</text>
+
+  <!-- fork : two outputs -->
+  <line x1="806" y1="170" x2="904" y2="170" class="d-line" marker-end="url(#m2a)"></line>
+  <text x="812" y="158" class="d-lbl">delta per pair</text>
+
+  <line x1="806" y1="350" x2="904" y2="350" class="d-line" marker-end="url(#m2a)"></line>
+  <text x="812" y="338" class="d-lbl">one pose each</text>
+
+  <!-- output A : the number -->
+  <rect x="910" y="70" width="290" height="190" rx="6" class="d-box"></rect>
+  <text x="928" y="104" class="d-h-sm">ObjectDelta</text>
+  <text x="928" y="124" class="d-m">[scene/comparisons]</text>
+  <line x1="910" y1="140" x2="1200" y2="140" class="d-rule"></line>
+  <text x="928" y="170" class="d-m">delta_position_mm</text>
+  <text x="928" y="196" class="d-m">delta_angle_deg</text>
+  <text x="928" y="222" class="d-m">time_gap_s</text>
+  <text x="928" y="248" class="d-m">review_gated</text>
+
+  <!-- output B : the picture -->
+  <rect x="910" y="290" width="290" height="140" rx="6" class="d-box"></rect>
+  <text x="928" y="322" class="d-h-sm">Render rows</text>
+  <text x="928" y="342" class="d-m">[mulib &#183; RobotVisualModel]</text>
+  <line x1="910" y1="356" x2="1200" y2="356" class="d-rule"></line>
+  <rect x="928" y="366" width="254" height="26" rx="4" class="d-box-acc"></rect>
+  <text x="942" y="384" class="d-t-sm">rotor_opti</text>
+  <rect x="928" y="398" width="254" height="26" rx="4" class="d-box-warm"></rect>
+  <text x="942" y="416" class="d-t-sm">rotor_expected</text>
+
+  <!-- claim -->
+  <line x1="40" y1="460" x2="1200" y2="460" class="d-rule"></line>
+  <text x="40" y="492" class="d-t">Two claims about one object: two copies drawn, in two colours, and one delta between them.</text>
+  <text x="40" y="516" class="d-lbl">Three claims give three copies and three deltas. Nothing is configured to make that happen.</text>
+</svg>

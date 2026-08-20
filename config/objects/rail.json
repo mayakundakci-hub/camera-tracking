@@ -1,0 +1,62 @@
+{
+  "id": "rail",
+  "display_name": "Rail",
+
+  "_note": "The world anchor. Its frame is built from two tracked bodies rather than one, so the 1651 mm chord between them fixes the rail's direction instead of a 120 mm marker triangle. Everything this project publishes is stated in this frame.",
+
+  "visual_mesh": "Rendering/Rail/visual/Rail.stl",
+  "mesh_scale": 1.0,
+
+  "placements": [
+    {
+      "id": "rail_opti_left",
+      "source": "optitrack",
+      "capture": "latched",
+      "asset_id": 4,
+
+      "_note": "Pink body, at the URDF's -Y end. Its pivot was set by hand in Motive at the CAD point mount_a names -- which it has to be, because there is no mount offset in this system any more and Motive's rigid-body frame IS this placement's frame. Recreate the body and mount_a is void until the pivot is set again.",
+
+      "visible": false,
+      "compare": false,
+      "color": "#f48fb1"
+    },
+    {
+      "id": "rail_opti_right",
+      "source": "optitrack",
+      "capture": "latched",
+      "asset_id": 5,
+
+      "visible": false,
+      "compare": false,
+      "color": "#90caf9"
+    },
+    {
+      "id": "rail_origin",
+      "source": "constructed",
+      "capture": "latched",
+      "inputs": ["rail_opti_left", "rail_opti_right"],
+
+      "construction": {
+        "normal_axis":   [0.156490, 0.970759, 0.182039],
+
+        "normal_in_part": [0.0, 0.0, 1.0],
+
+        "expect_normal_in_parent": [0.0, 1.0, 0.0],
+
+        "mount_a": { "position_mm": [-55, 830, -200] },
+        "mount_b": { "position_mm": [-55, -827, -200] }
+      },
+
+      "compare": false,
+      "visible": true,
+      "color": "#9e9e9e"
+    }
+  ],
+
+  "calibrated": {
+    "date": "2026-08-17",
+    "rms_mm": -1.0,
+    "motive_asset_rev": "pink = streaming id 4, blue = streaming id 5",
+    "note": "Pivots set by hand at CAD points -- which is the whole mount calibration, since there is no offset field to correct them. Baseline is 1651 mm, not the full rail -- moving the bodies further apart is the cheapest accuracy in the system, and it multiplies into every object because this is the anchor."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "world_anchor": "rail_origin",
+  "objects": [
+    "rail",
+    "hand_left_base",
+    "hand_left_j8",
+    "hand_left_j9",
+    "hand",
+    "rotor"
+  ]
+}

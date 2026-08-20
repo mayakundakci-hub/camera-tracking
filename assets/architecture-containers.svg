@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 920" width="1240" height="920" role="img">
+  <title>camera-tracking — container diagram</title>
+  <desc>C4 container diagram. External systems OptiTrack Motive and a planned FANUC robot bridge feed the Camera Tracking system. Inside its process boundary: a Measurement Backend reads a Scene Configuration file store and publishes to a message bus; an Operator Console and a Session Logger subscribe to that bus; the logger writes a session log file. An operator uses the console.</desc>
+  <style>
+    :root {
+      --surface:     #FFFFFF;
+      --surface-2:   #E9EEEE;
+      --ink:         #0E1719;
+      --body:        #354346;
+      --muted:       #667578;
+      --line:        #DCE3E3;
+      --line-strong: #9EADAF;
+      --accent:      #00707E;
+      --accent-soft: #E2F0F2;
+      --warm:        #9C5716;
+      --warm-soft:   #F6EBDE;
+
+      --display: "Bahnschrift", "DIN Alternate", "Segoe UI Semibold", "Avenir Next Condensed", system-ui, sans-serif;
+      --text: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --mono: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface:     #151E21;
+        --surface-2:   #1D282C;
+        --ink:         #EAF0F0;
+        --body:        #BAC7C9;
+        --muted:       #8A9C9F;
+        --line:        #263236;
+        --line-strong: #47595D;
+        --accent:      #4FC9D6;
+        --accent-soft: #113640;
+        --warm:        #E3A45F;
+        --warm-soft:   #33261A;
+      }
+    }
+
+    text         { font-family: var(--text); }
+    .d-bg        { fill: var(--surface); }
+    .d-box       { fill: var(--surface);     stroke: var(--line-strong); stroke-width: 1.4; }
+    .d-box-acc   { fill: var(--accent-soft); stroke: var(--accent);      stroke-width: 1.4; }
+    .d-box-ext   { fill: var(--surface-2);   stroke: var(--line-strong); stroke-width: 1.4; }
+    .d-box-warm  { fill: var(--warm-soft);   stroke: var(--warm);        stroke-width: 1.4; stroke-dasharray: 7 4; }
+    .d-bound     { fill: none;               stroke: var(--line-strong); stroke-width: 1.4; stroke-dasharray: 3 6; }
+    .d-h         { fill: var(--ink);   font-family: var(--display); font-size: 17px; }
+    .d-h-sm      { fill: var(--ink);   font-family: var(--display); font-size: 14.5px; }
+    .d-t         { fill: var(--body);  font-size: 13px; }
+    .d-t-sm      { fill: var(--body);  font-size: 12px; }
+    .d-m         { fill: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .d-lbl       { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+    .d-eyebrow   { fill: var(--accent); font-family: var(--display); font-size: 11px; letter-spacing: 0.15em; }
+    .d-warm      { fill: var(--warm); }
+    .d-acc       { fill: var(--accent); }
+    .d-line      { stroke: var(--line-strong); stroke-width: 1.6; fill: none; }
+    .d-line-acc  { stroke: var(--accent);      stroke-width: 1.6; fill: none; }
+    .d-line-warm { stroke: var(--warm);        stroke-width: 1.6; fill: none; stroke-dasharray: 7 4; }
+    .d-rule      { stroke: var(--line); stroke-width: 1; }
+    .d-arrow     { fill: var(--line-strong); }
+    .d-arrow-acc { fill: var(--accent); }
+    .d-arrow-warm{ fill: var(--warm); }
+  </style>
+  <rect width="1240" height="920" class="d-bg"></rect>
+  <defs>
+    <marker id="c4a" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="d-arrow"></path>
+    </marker>
+    <marker id="c4b" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="d-arrow-acc"></path>
+    </marker>
+    <marker id="c4c" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="d-arrow-warm"></path>
+    </marker>
+  </defs>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="40" y="60" width="210" height="272" rx="6" class="d-box"></rect>
+  <text x="58" y="90" class="d-eyebrow">NOTATION</text>
+  <rect x="58" y="106" width="24" height="17" rx="3" class="d-box"></rect>
+  <text x="92" y="119" class="d-t-sm">Container</text>
+  <rect x="58" y="139" width="24" height="17" rx="3" class="d-box-ext"></rect>
+  <text x="92" y="152" class="d-t-sm">External system</text>
+  <rect x="58" y="172" width="24" height="17" rx="3" class="d-box-warm"></rect>
+  <text x="92" y="185" class="d-t-sm">Planned, not built</text>
+  <line x1="58" y1="213" x2="82" y2="213" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="92" y="217" class="d-t-sm">Interaction</text>
+  <line x1="40" y1="238" x2="250" y2="238" class="d-rule"></line>
+  <text x="58" y="260" class="d-lbl">Every arrow points the</text>
+  <text x="58" y="277" class="d-lbl">way the interaction goes</text>
+  <text x="58" y="294" class="d-lbl">and names its protocol.</text>
+  <text x="58" y="317" class="d-lbl">Boxes name their tech.</text>
+
+  <!-- ============ OPERATOR ============ -->
+  <rect x="40" y="620" width="210" height="150" rx="6" class="d-box-ext"></rect>
+  <text x="58" y="652" class="d-h-sm">Operator</text>
+  <text x="58" y="671" class="d-m">[Person]</text>
+  <text x="58" y="697" class="d-t-sm">Runs the validation</text>
+  <text x="58" y="715" class="d-t-sm">session; accepts or</text>
+  <text x="58" y="733" class="d-t-sm">rejects the latched</text>
+  <text x="58" y="751" class="d-t-sm">measurements</text>
+
+  <!-- ============ EXTERNAL SYSTEMS ============ -->
+  <rect x="530" y="44" width="240" height="120" rx="6" class="d-box-ext"></rect>
+  <text x="548" y="76" class="d-h-sm">OptiTrack Motive</text>
+  <text x="548" y="95" class="d-m">[External system]</text>
+  <text x="548" y="121" class="d-t-sm">Tracks rigid bodies and</text>
+  <text x="548" y="139" class="d-t-sm">solves their pose at 120 Hz</text>
+
+  <rect x="830" y="44" width="240" height="120" rx="6" class="d-box-warm"></rect>
+  <text x="848" y="76" class="d-h-sm">FANUC robot bridge</text>
+  <text x="848" y="95" class="d-m">[External system &#183; C#]</text>
+  <text x="848" y="121" class="d-t-sm">Reports what the controller</text>
+  <text x="848" y="139" class="d-t-sm d-warm">believes &#8212; not built yet</text>
+
+  <!-- ============ SYSTEM BOUNDARY ============ -->
+  <rect x="280" y="200" width="920" height="680" rx="10" class="d-bound"></rect>
+  <text x="300" y="230" class="d-h-sm">Camera Tracking</text>
+  <text x="450" y="230" class="d-m">[Software system]</text>
+
+  <!-- ============ SCENE CONFIG ============ -->
+  <rect x="300" y="300" width="170" height="150" rx="6" class="d-box"></rect>
+  <text x="316" y="330" class="d-h-sm">Scene config</text>
+  <text x="316" y="349" class="d-m">[File store: JSON]</text>
+  <text x="316" y="375" class="d-t-sm">scene.json</text>
+  <text x="316" y="393" class="d-t-sm">objects/*.json</text>
+  <text x="316" y="411" class="d-t-sm">config.json</text>
+  <text x="316" y="434" class="d-lbl">strictly validated</text>
+
+  <!-- ============ BACKEND ============ -->
+  <rect x="540" y="290" width="370" height="180" rx="6" class="d-box"></rect>
+  <text x="558" y="323" class="d-h">Measurement Backend</text>
+  <text x="558" y="344" class="d-m">[Container: C++20, Eigen, NatNet]</text>
+  <text x="558" y="374" class="d-t">Owns every transform in the system. Latches</text>
+  <text x="558" y="394" class="d-t">or streams each placement, projects joints onto</text>
+  <text x="558" y="414" class="d-t">their axes, and emits one delta per pair of</text>
+  <text x="558" y="434" class="d-t">independent claims about an object.</text>
+  <text x="558" y="458" class="d-lbl">publishes poses already in the anchor frame</text>
+
+  <!-- ============ BUS ============ -->
+  <rect x="540" y="530" width="640" height="72" rx="8" class="d-box-acc"></rect>
+  <text x="558" y="562" class="d-h-sm">Message Bus</text>
+  <text x="558" y="584" class="d-m">[Container: eCAL shared memory &#183; protobuf &#183; 7 topics]</text>
+
+  <!-- ============ OPERATOR CONSOLE ============ -->
+  <rect x="300" y="660" width="470" height="210" rx="6" class="d-box"></rect>
+  <text x="318" y="693" class="d-h">Operator Console</text>
+  <text x="318" y="714" class="d-m">[Container: C++, Qt Quick 3D]</text>
+  <text x="318" y="744" class="d-t">Three screens, forward only: home, review gate, tracking.</text>
+  <text x="318" y="764" class="d-t">A pure viewer &#8212; every pose arrives in the anchor frame.</text>
+  <text x="318" y="792" class="d-eyebrow">BUILT ON MUNERA</text>
+  <rect x="318" y="802" width="214" height="36" rx="5" class="d-box-acc"></rect>
+  <text x="332" y="825" class="d-t-sm">mulib &#8212; viewport, N models, STL</text>
+  <rect x="544" y="802" width="208" height="36" rx="5" class="d-box-acc"></rect>
+  <text x="558" y="825" class="d-t-sm">ludus &#8212; URDF/SDF import, FK</text>
+  <text x="318" y="859" class="d-lbl">reads mesh paths and topic names from the same config</text>
+
+  <!-- ============ LOGGER ============ -->
+  <rect x="830" y="660" width="350" height="110" rx="6" class="d-box"></rect>
+  <text x="848" y="693" class="d-h-sm">Session Logger</text>
+  <text x="848" y="713" class="d-m">[Container: C++]</text>
+  <text x="848" y="740" class="d-t-sm">Records only while the operator's</text>
+  <text x="848" y="758" class="d-t-sm">toggle is on, so the log is the run</text>
+
+  <!-- ============ SESSION LOG STORE ============ -->
+  <rect x="830" y="800" width="350" height="72" rx="6" class="d-box"></rect>
+  <text x="848" y="830" class="d-h-sm">Session log</text>
+  <text x="1000" y="830" class="d-m">[File store: CSV]</text>
+  <text x="848" y="855" class="d-t-sm">one row per delta per tick &#183; 44 columns</text>
+
+  <!-- ============ RELATIONSHIPS ============ -->
+
+  <!-- Motive -> backend -->
+  <line x1="650" y1="168" x2="650" y2="286" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="664" y="198" class="d-m">Streams rigid-body poses</text>
+  <text x="664" y="216" class="d-m">[NatNet, UDP, 120 Hz]</text>
+
+  <!-- bridge -> bus -->
+  <line x1="950" y1="168" x2="950" y2="526" class="d-line-warm" marker-end="url(#c4c)"></line>
+  <text x="964" y="198" class="d-m d-warm">Will publish joint state, TCP</text>
+  <text x="964" y="216" class="d-m d-warm">and tool frame [protobuf]</text>
+
+  <!-- backend -> config -->
+  <line x1="536" y1="372" x2="476" y2="372" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="482" y="362" class="d-lbl">Reads</text>
+
+  <!-- backend -> bus -->
+  <line x1="640" y1="474" x2="640" y2="526" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="654" y="492" class="d-m">Publishes resolved poses, deltas</text>
+  <text x="654" y="510" class="d-m">and joint estimates [10 Hz]</text>
+
+  <!-- bus -> console -->
+  <line x1="580" y1="606" x2="580" y2="656" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="594" y="628" class="d-m">Delivers 5 topics</text>
+
+  <!-- console -> bus -->
+  <line x1="740" y1="656" x2="740" y2="606" class="d-line-acc" marker-end="url(#c4b)"></line>
+  <text x="754" y="628" class="d-m d-acc">Publishes session control</text>
+
+  <!-- bus -> logger -->
+  <line x1="1000" y1="606" x2="1000" y2="656" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="1014" y="628" class="d-m">Delivers 4 topics</text>
+
+  <!-- logger -> store -->
+  <line x1="1000" y1="774" x2="1000" y2="796" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="1014" y="791" class="d-m">Appends [CSV]</text>
+
+  <!-- console -> config -->
+  <line x1="390" y1="656" x2="390" y2="456" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="404" y="500" class="d-m">Reads meshes</text>
+
+  <!-- operator -> console -->
+  <line x1="254" y1="700" x2="296" y2="700" class="d-line" marker-end="url(#c4a)"></line>
+  <text x="258" y="690" class="d-lbl">Uses</text>
+</svg>

@@ -1,0 +1,56 @@
+{
+  "id": "hand_left_j8",
+  "display_name": "Hand J8 (blue plate)",
+
+  "_note": "Tracked twice: as OptiTrack sees it, and as the J8 joint says it must be given the green plate's pose. The disagreement between those two is this file's output.",
+
+  "_no_visual_mesh": "Deliberate. hand_link_1.STL is the FADO link, whose hinges are 270 mm apart against the mock hand's 262.5 mm; drawing it at the measured angles puts the links 7.5 mm out and reads as a tracking fault. The whole hand is drawn once, by hand.json.",
+
+  "placements": [
+    {
+      "id": "hand_left_j8_opti",
+      "source": "optitrack",
+      "capture": "continuous",
+      "asset_id": 2,
+
+      "_note": "The raw measurement, kept as its own placement so the projection can never quietly hide how far it had to move it. compare is true on both placements here, so the pair publishes that gap as a delta.",
+
+      "compare": true,
+      "color": "#808080"
+    },
+    {
+      "id": "hand_left_j8_projected",
+      "source": "projected",
+      "parent_frame": "hand_left_base_opti",
+      "measured": "hand_left_j8_opti",
+
+      "joint": {
+        "axis": [0.0, 1.0, 0.0],
+        "zero_pose": {
+          "position_mm":   [-110.012, -10.620, -2.294],
+          "quat_wxyz":  [0.999937, 0.000000, -0.011186, 0.000000]
+        },
+
+        "axis_point": {
+          "position_mm": [21.00, 0.0, 77.84]
+        },
+
+        "_limits": "From the URDF's +/-1.5707 rad. A measurement landing outside is flagged 'clamped', which means the geometry, a pivot, or the body identification is wrong.",
+        "lower_deg": -90,
+        "upper_deg": 90,
+
+        "reported_arm": "Left",
+        "reported_index": 0
+      },
+
+      "compare": true,
+      "color": "#808080"
+    }
+  ],
+
+  "calibrated": {
+    "date": "2026-08-12",
+    "rms_mm": -1.0,
+    "motive_asset_rev": "blue plate / streaming id 2 / 4 markers"
+  }
+}

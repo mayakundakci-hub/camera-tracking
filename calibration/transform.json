@@ -1,9 +1,0 @@
-{
-  "rotation": [
-    [1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-    [0.0, 0.0, 1.0]
-  ],
-  "translation_m": [0.0, 0.0, 0.0],
-  "_residual_note": "registration_residual_mm intentionally omitted until calibration is run — loadCalibration() defaults it to -1.0 (unknown) rather than a misleading 0. Fill it in after calibration; report it alongside error numbers."
-}

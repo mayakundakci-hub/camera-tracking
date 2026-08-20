@@ -1,0 +1,39 @@
+{
+  "name": "ludus",
+  "version-semver": "0.1.0",
+  "port-version": 10,
+  "description": "Headless geometry, CAD, and robot-domain services.",
+  "dependencies": [
+    {
+      "name": "arena",
+      "features": [
+        "model"
+      ]
+    },
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "occt": {
+      "description": "OpenCASCADE CAD implementation.",
+      "dependencies": [
+        "opencascade"
+      ]
+    },
+    "robot": {
+      "description": "Robot domain contracts and services.",
+      "dependencies": [
+        "eigen3",
+        "orocos-kdl",
+        "sdformat",
+        "urdfdom"
+      ]
+    }
+  }
+}

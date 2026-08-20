@@ -1,0 +1,76 @@
+{
+  "id": "rotor",
+  "display_name": "Rotor",
+  "visual_mesh": "Rendering/RotorFiles/PSCDisc_centred.stl",
+  "mesh_scale": 25.4,
+
+  "placements": [
+    {
+      "id": "rotor_opti_a",
+      "source": "optitrack",
+      "capture": "latched",
+      "asset_id": 6,
+      "latch": {
+        "min_samples": 480,
+        "max_spread_mm": 4.0
+      },
+
+      "visible": false,
+      "compare": false,
+      "color": "#4fc3f7"
+    },
+    {
+      "id": "rotor_opti_b",
+      "source": "optitrack",
+      "capture": "latched",
+      "asset_id": 7,
+
+      "latch": {
+        "min_samples": 480,
+        "max_spread_mm": 4.0
+      },
+
+      "visible": false,
+      "compare": false,
+      "color": "#81d4fa"
+    },
+    {
+      "id": "rotor_opti",
+      "source": "constructed",
+      "capture": "latched",
+      "inputs": ["rotor_opti_a", "rotor_opti_b"],
+
+      "construction": {
+        "normal_axis":  [-0.998020, -0.062458, 0.007462],
+        "normal_in_part": [1.0, 0.0, 0.0],
+        "expect_normal_in_parent": [0.0, 1.0, 0.0],
+
+        "_L": "88.9 mm (the gear's measured half face width) + 215.9 mm (8.5 in bar standoff past the rim) + the pivot's own offset along the bar: 50 mm on asset 6 (top), 30 mm on asset 7 (bottom). These two were SWAPPED until 2026-08-20 -- measured on the machine, the top pivot stands 20 mm further out than the bottom, and the config had it the other way. The standoffs are what nothing checks: get both wrong by the same amount and the whole rotor slides along its axis silently.",
+        "mount_a": { "position_mm": [354.800,    0.000, 806.450] },
+        "mount_b": { "position_mm":  [334.800, -419.364, 688.824] }
+      },
+
+      "compare": false,
+      "visible": true,
+      "color": "#ffb74d"
+    }
+  ],
+
+  "_placement_when_the_bridge_exists": [
+    {
+      "_note": "Parked out of 'placements' because nothing publishes rotor/pose_expected yet. Loading it would leave the scene permanently incomplete and generate a comparison row that can never resolve. Move it back the day the bridge publishes.",
+      "id": "rotor_expected",
+      "source": "expected_pose",
+      "capture": "latched",
+      "topic": "rotor/pose_expected",
+      "color": "#ff8a65"
+    }
+  ],
+
+  "calibrated": {
+    "date": "2026-08-17",
+    "rms_mm": -1.0,
+    "motive_asset_rev": "top clamp = streaming id 6, bottom clamp = streaming id 7",
+    "note": "Pivots set by hand at CAD points -- which is the whole mount calibration, since there is no offset field to correct them. Both clamps on the robot-facing side, bars pointing outboard. Record which grooves they sat in -- clocking separation is groove-dependent and is still unmeasured."
+  }
+}

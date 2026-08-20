@@ -7,3 +7,4 @@ logs/
 .vscode/
 CMakeUserPresets.json
 vcpkg_installed/
+.pre-cleanup-originals/
